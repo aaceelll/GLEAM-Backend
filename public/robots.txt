@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+
+class AuthController extends Controller
+{
+    public function registerUser(Request $request)
+{
+    $data = $request->validate([
+        'nama'              => ['required','string','max:255'],
+        'email'             => ['required','email','max:255','unique:users,email'],
+        'username'          => ['required','string','max:255','unique:users,username'],
+        'nomor_telepon'     => ['required','string','max:50'],
+        'tanggal_lahir'     => ['required','date'],
+        'jenis_kelamin'     => ['required','in:male,female'],
+        'alamat'            => ['required','string','max:255'],
+        'password'          => ['required','string','min:8','confirmed'], // butuh password_confirmation
+    ]);
+
+    $user = User::create([
+        'nama'           => $data['nama'],
+        'email'          => $data['email'],
+        'username'       => $data['username'],
+        'nomor_telepon'  => $data['nomor_telepon'],
+        'tanggal_lahir'  => $data['tanggal_lahir'],
+        'jenis_kelamin'  => $data['jenis_kelamin'],
+        'alamat'         => $data['alamat'],
+        'role'           => 'user',
+        'password'       => $data['password'], // di-hash otomatis oleh cast
+    ]);
+
+    $token = $user->createToken('api')->plainTextToken;
+
+    return response()->json([
+        'token' => $token,
+        'user'  => $user,
+    ], 201);
+}
+
+    public function login(Request $request)
+    {
+        $cred = $request->validate([
+            'email'    => ['required','email'],
+            'password' => ['required','string'],
+        ]);
+
+        $user = User::where('email', $cred['email'])->first();
+
+        if (!$user || !Hash::check($cred['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        $token = $user->createToken('api')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user'  => [
+                'id' => $user->id,
+                'nama' => $user->nama,
+                'nama_lengkap' => $user->nama, // gunakan field nama sebagai nama_lengkap
+                'email' => $user->email,
+                'username' => $user->username,
+                'role' => $user->role,
+                'nomor_telepon' => $user->nomor_telepon,
+            ],
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()?->delete();
+        return response()->json(['message' => 'Logged out']);
+    }
+
+    public function me(Request $request)
+    {
+        return response()->json($request->user());
+    }
+}
