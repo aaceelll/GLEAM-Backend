@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\Admin\UserManagementController;
 |--------------------------------------------------------------------------
 */
 
+Route::post('/register/staff', [UserManagementController::class, 'store']);
+
 // (Opsional) endpoint cek server sederhana
 Route::get('/health', fn () => response()->json(['ok' => true]));
 
