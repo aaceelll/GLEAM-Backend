@@ -32,7 +32,9 @@ class AuthController extends Controller
             'jenis_kelamin'  => $data['jenis_kelamin'],
             'alamat'         => $data['alamat'],
             'role'           => 'user',
-            'password'       => $data['password'], // di-hash via casts
+            // Laravel 10+: gunakan cast 'password' => 'hashed' di model User.
+            // Kalau belum ada, pakai: Hash::make($data['password'])
+            'password'       => $data['password'],
         ]);
 
         $token = $user->createToken('api')->plainTextToken;
