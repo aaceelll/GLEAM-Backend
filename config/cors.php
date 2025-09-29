@@ -26,5 +26,5 @@ return [
     'max_age' => 0,
 
     // Pakai Bearer token (bukan cookie session)
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 ];

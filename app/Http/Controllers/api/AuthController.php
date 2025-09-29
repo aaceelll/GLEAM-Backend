@@ -15,31 +15,30 @@ class AuthController extends Controller
         $data = $request->validate([
             'nama'              => ['required','string','max:255'],
             'email'             => ['required','email','max:255','unique:users,email'],
-            'username'          => ['required','string','max:255','unique:users,username'],
+            'username'          => ['nullable','string','max:255','unique:users,username'],
             'nomor_telepon'     => ['required','string','max:50'],
-            'tanggal_lahir'     => ['required','date'],
-            'jenis_kelamin'     => ['required','in:male,female'],
-            'alamat'            => ['required','string','max:255'],
+            'tanggal_lahir'     => ['nullable','date'],
+            'jenis_kelamin'     => ['nullable','in:Laki-laki,Perempuan,'],
+            'alamat'            => ['nullable','string','max:255'],
             'password'          => ['required','string','min:8','confirmed'],
         ]);
 
         $user = User::create([
             'nama'           => $data['nama'],
             'email'          => $data['email'],
-            'username'       => $data['username'],
+            'username'       => $data['username'] ?? null,
             'nomor_telepon'  => $data['nomor_telepon'],
-            'tanggal_lahir'  => $data['tanggal_lahir'],
-            'jenis_kelamin'  => $data['jenis_kelamin'],
-            'alamat'         => $data['alamat'],
+            'tanggal_lahir'  => $data['tanggal_lahir'] ?? null,
+            'jenis_kelamin'  => $data['jenis_kelamin'] ?? null,
+            'alamat'         => $data['alamat'] ?? null,
             'role'           => 'user',
-            // Laravel 10+: gunakan cast 'password' => 'hashed' di model User.
-            // Kalau belum ada, pakai: Hash::make($data['password'])
-            'password'       => $data['password'],
+            'password'       => Hash::make($data['password']),
         ]);
 
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
+            'success' => true,
             'token' => $token,
             'user'  => $user,
         ], 201);
@@ -55,14 +54,16 @@ class AuthController extends Controller
         $user = User::where('email', $cred['email'])->first();
 
         if (!$user || !Hash::check($cred['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Email atau password salah'
+            ], 401);
         }
 
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
+            'success' => true,
             'token' => $token,
             'user'  => [
                 'id'            => $user->id,
@@ -83,6 +84,9 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json([
+            'success' => true,
+            'data' => $request->user()
+        ]);
     }
 }

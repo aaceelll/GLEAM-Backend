@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 // Auth
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProfileController;
 
 // Admin Controllers
 use App\Http\Controllers\Api\Admin\DashboardController;
@@ -34,6 +35,12 @@ Route::prefix('auth')->group(function () {
         Route::get('/me',      [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
+});
+
+// ========== PROFILE (protected) ==========
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile', [ProfileController::class, 'update']);
 });
 
 // (Opsional) pendaftaran staff publik
