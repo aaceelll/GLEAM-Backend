@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 // Auth
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\WebsiteReviewController;
 
 // Admin Controllers
 use App\Http\Controllers\Api\Admin\DashboardController;
@@ -44,6 +45,10 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
+    
+    // Website Review
+    Route::get('/website-review', [WebsiteReviewController::class, 'show']);
+    Route::post('/website-review', [WebsiteReviewController::class, 'store']);
 });
 
 // (Opsional) pendaftaran staff publik
