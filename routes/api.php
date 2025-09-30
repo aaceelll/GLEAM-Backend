@@ -45,7 +45,7 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
-    
+
     // Website Review
     Route::get('/website-review', [WebsiteReviewController::class, 'show']);
     Route::post('/website-review', [WebsiteReviewController::class, 'store']);
@@ -54,6 +54,12 @@ Route::middleware('auth:sanctum')->group(function () {
 // (Opsional) pendaftaran staff publik
 Route::post('/register/staff', [UserManagementController::class, 'store']);
 
+/* ========= MATERI (PUBLIC) =========
+ * Endpoint publik untuk role user (tanpa prefix /admin).
+ * GET /api/materi/konten?slug=diabetes-melitus
+ */
+Route::get('/materi/konten', [MateriController::class, 'listKontenPublic']);
+
 // ========== ADMIN (protected) ==========
 Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
     ->prefix('admin')
@@ -61,8 +67,12 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
-        // Materi
+        // Materi (ADMIN)
         Route::get('/materi', [MateriController::class, 'index']);
+        Route::get('/materi/konten', [MateriController::class, 'listKonten']);     // list untuk admin
+        Route::post('/materi/konten', [MateriController::class, 'storeKonten']);
+        Route::patch('/materi/konten/{id}', [MateriController::class, 'updateKonten']);
+        Route::delete('/materi/konten/{id}', [MateriController::class, 'destroyKonten']);
 
         // Bank Soal
         Route::get('/bank-soal', [BankSoalController::class, 'index']);
@@ -84,7 +94,7 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
         // Users
         Route::apiResource('users', UserManagementController::class);
 
-        // ===== ADMIN FORUM MANAGEMENT (PUBLIC ONLY) =====
+        // ===== ADMIN FORUM MANAGEMENT =====
         Route::prefix('forum')->group(function () {
             Route::post('/threads/{id}/pin', [ForumController::class, 'pinThread']);
             Route::post('/threads/{id}/lock', [ForumController::class, 'lockThread']);
@@ -94,28 +104,17 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
 
 // ========== FORUM ROUTES (protected) ==========
 Route::middleware('auth:sanctum')->prefix('forum')->group(function () {
-    // Categories
     Route::get('/categories', [ForumController::class, 'getCategories']);
-    
-    // Threads - PUBLIC & PRIVATE
-    Route::get('/threads', [ForumController::class, 'getThreads']); // Support filter type=public|private
+    Route::get('/threads', [ForumController::class, 'getThreads']);
     Route::get('/threads/{id}', [ForumController::class, 'getThreadDetail']);
-    Route::post('/threads', [ForumController::class, 'createThread']); // Bisa public atau private
+    Route::post('/threads', [ForumController::class, 'createThread']);
     Route::delete('/threads/{id}', [ForumController::class, 'deleteThread']);
-    
-    // Replies
     Route::post('/threads/{id}/reply', [ForumController::class, 'replyThread']);
     Route::delete('/replies/{id}', [ForumController::class, 'deleteReply']);
-    
-    // Likes
     Route::post('/threads/{id}/like', [ForumController::class, 'likeThread']);
-    Route::post('/replies/{id}/like', [ForumController::class, 'likeReply']);
-    
-    // ===== NAKES ONLY: Private Questions Management =====
+    Route::post('/replies/{id}', [ForumController::class, 'likeReply']);
     Route::get('/private/pending', [ForumController::class, 'getPendingPrivateThreads']);
     Route::get('/private/my-assignments', [ForumController::class, 'getMyPrivateThreads']);
     Route::post('/threads/{id}/assign', [ForumController::class, 'assignToSelf']);
-    
-    // Close thread (User, Nakes, or Admin)
     Route::patch('/threads/{id}/close', [ForumController::class, 'closeThread']);
 });
