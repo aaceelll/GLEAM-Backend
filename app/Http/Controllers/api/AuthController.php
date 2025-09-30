@@ -16,7 +16,7 @@ class AuthController extends Controller
             'nama'              => ['required','string','max:255'],
             'email'             => ['required','email','max:255','unique:users,email'],
             'username'          => ['nullable','string','max:255','unique:users,username'],
-            'nomor_telepon'     => ['required','string','max:50'],
+            'nomor_telepon'     => [' required','string','max:50'],
             'tanggal_lahir'     => ['nullable','date'],
             'jenis_kelamin'     => ['nullable','in:Laki-laki,Perempuan,'],
             'alamat'            => ['nullable','string','max:255'],
