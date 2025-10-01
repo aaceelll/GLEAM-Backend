@@ -45,6 +45,7 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword']);
 
     // Website Review
     Route::get('/website-review', [WebsiteReviewController::class, 'show']);
@@ -79,7 +80,7 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
         Route::post('/bank-soal', [BankSoalController::class, 'store']);
         Route::patch('/bank-soal/{id}', [BankSoalController::class, 'update']);
         Route::delete('/bank-soal/{id}', [BankSoalController::class, 'destroy']);
-
+Route::post('/bank-soal/{bankId}/soal', [SoalController::class, 'store']);
         // Soal
         Route::get('/bank-soal/{bankId}/soal', [SoalController::class, 'listByBank']);
         Route::post('/soal', [SoalController::class, 'store']);
