@@ -2,12 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 
+// ===== Controllers =====
 // Auth
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\WebsiteReviewController;
 
-// Admin Controllers
+// Admin
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\UserManagementController;
 use App\Http\Controllers\Api\Admin\BankSoalController;
@@ -15,7 +16,7 @@ use App\Http\Controllers\Api\Admin\SoalController;
 use App\Http\Controllers\Api\Admin\TesController;
 use App\Http\Controllers\Api\Admin\MateriController;
 
-// Forum Controller
+// Forum
 use App\Http\Controllers\Api\ForumController;
 
 // Middleware
@@ -30,7 +31,7 @@ use App\Http\Middleware\RoleMiddleware;
 // Health check
 Route::get('/health', fn () => response()->json(['ok' => true]));
 
-// ========== AUTH ==========
+// ========================= AUTH =========================
 Route::prefix('auth')->group(function () {
     Route::post('/register/user', [AuthController::class, 'registerUser']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -41,7 +42,7 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-// ========== PROFILE (protected) ==========
+// ============== PROFILE & MISC (protected) ==============
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
@@ -52,50 +53,51 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/website-review', [WebsiteReviewController::class, 'store']);
 });
 
-// (Opsional) pendaftaran staff publik
+// (opsional) pendaftaran staff publik
 Route::post('/register/staff', [UserManagementController::class, 'store']);
 
-/* ========= MATERI (PUBLIC) =========
- * Endpoint publik untuk role user (tanpa prefix /admin).
- * GET /api/materi/konten?slug=diabetes-melitus
- */
-Route::get('/materi/konten', [MateriController::class, 'listKontenPublic']);
+// ====================== PUBLIC (USER) ======================
+// Materi untuk halaman user (tanpa prefix /admin)
+Route::get('/materi/konten', [MateriController::class, 'listKontenPublic']); // ?slug=diabetes-melitus
 
-// ========== ADMIN (protected) ==========
+// ====================== ADMIN (protected) ======================
 Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
     ->prefix('admin')
     ->group(function () {
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
-        // Materi (ADMIN)
+        // -------- Materi (ADMIN) --------
         Route::get('/materi', [MateriController::class, 'index']);
         Route::get('/materi/konten', [MateriController::class, 'listKonten']);     // list untuk admin
         Route::post('/materi/konten', [MateriController::class, 'storeKonten']);
         Route::patch('/materi/konten/{id}', [MateriController::class, 'updateKonten']);
         Route::delete('/materi/konten/{id}', [MateriController::class, 'destroyKonten']);
 
-        // Bank Soal
+        // -------- Bank Soal --------
         Route::get('/bank-soal', [BankSoalController::class, 'index']);
         Route::post('/bank-soal', [BankSoalController::class, 'store']);
         Route::patch('/bank-soal/{id}', [BankSoalController::class, 'update']);
         Route::delete('/bank-soal/{id}', [BankSoalController::class, 'destroy']);
-Route::post('/bank-soal/{bankId}/soal', [SoalController::class, 'store']);
-        // Soal
-        Route::get('/bank-soal/{bankId}/soal', [SoalController::class, 'listByBank']);
+
+        // -------- Soal (nested di Bank Soal) --------
+        Route::get('/bank-soal/{bankId}/soal', [SoalController::class, 'listByBank']);  // list soal per bank
+        Route::post('/bank-soal/{bankId}/soal', [SoalController::class, 'store']);      // preferred: kirim ke bank tertentu
+
+        // (legacy / kompatibilitas) tetap terima POST /soal
         Route::post('/soal', [SoalController::class, 'store']);
         Route::delete('/soal/{id}', [SoalController::class, 'destroy']);
 
-        // Tes
+        // -------- Tes --------
         Route::get('/tes', [TesController::class, 'index']);
         Route::post('/tes', [TesController::class, 'store']);
         Route::patch('/tes/{id}', [TesController::class, 'update']);
         Route::delete('/tes/{id}', [TesController::class, 'destroy']);
 
-        // Users
+        // -------- Users --------
         Route::apiResource('users', UserManagementController::class);
 
-        // ===== ADMIN FORUM MANAGEMENT =====
+        // -------- Forum Management --------
         Route::prefix('forum')->group(function () {
             Route::post('/threads/{id}/pin', [ForumController::class, 'pinThread']);
             Route::post('/threads/{id}/lock', [ForumController::class, 'lockThread']);
@@ -103,7 +105,7 @@ Route::post('/bank-soal/{bankId}/soal', [SoalController::class, 'store']);
         });
     });
 
-// ========== FORUM ROUTES (protected) ==========
+// ===================== FORUM (protected) =====================
 Route::middleware('auth:sanctum')->prefix('forum')->group(function () {
     Route::get('/categories', [ForumController::class, 'getCategories']);
     Route::get('/threads', [ForumController::class, 'getThreads']);
