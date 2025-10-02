@@ -4,11 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BankSoal extends Model
-{
+class BankSoal extends Model {
     protected $table = 'question_banks';
-    protected $fillable = ['nama','status'];
-
+    protected $fillable = ['nama', 'deskripsi']; // sesuaikan kolom
     public function soal() { return $this->hasMany(Soal::class, 'bank_id'); }
-    public function tests() { return $this->hasMany(TestModel::class, 'bank_id'); }
 }

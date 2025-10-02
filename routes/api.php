@@ -59,6 +59,15 @@ Route::post('/register/staff', [UserManagementController::class, 'store']);
 // ====================== PUBLIC (USER) ======================
 // Materi untuk halaman user (tanpa prefix /admin)
 Route::get('/materi/konten', [MateriController::class, 'listKontenPublic']); // ?slug=diabetes-melitus
+Route::get('/materi/tes/{id}', [MateriController::class, 'showTesPublic']);
+Route::get('/materi/tes-by-bank/{bankId}', [MateriController::class, 'showTesByBank']); // detail langsung dari bank (fallback)
+
+Route::prefix('admin')->group(function () {
+    Route::get('/tes', [TesController::class, 'index']);
+    Route::post('/tes', [TesController::class, 'store']);
+    Route::patch('/tes/{id}', [TesController::class, 'update']);
+    Route::delete('/tes/{id}', [TesController::class, 'destroy']);
+});
 
 // ====================== ADMIN (protected) ======================
 Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
