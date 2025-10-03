@@ -13,4 +13,12 @@ class Materi extends Model
     {
         return $this->hasMany(TestModel::class, 'materi_id');
     }
+
+    public function bankSoal()
+    {
+        // pivot: materi_bank_soal (materi_id, bank_id, tipe, is_active, urutan, timestamps)
+        return $this->belongsToMany(BankSoal::class, 'materi_bank_soal', 'materi_id', 'bank_id')
+                    ->withPivot(['tipe', 'is_active', 'urutan'])
+                    ->withTimestamps();
+    }
 }

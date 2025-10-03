@@ -29,8 +29,9 @@ class ProfileController extends Controller
         $data = $request->validate([
             // ---- Field akun umum
             'nama'          => ['required','string','max:255'],
-            'email'         => ['required','email', Rule::unique('users','email')->ignore($user->id)],
-            'username'      => ['required','string','max:255', Rule::unique('users','username')->ignore($user->id)],
+            // 'email'         => ['required','email', Rule::unique('users','email')->ignore($user->id)],
+            // 'username'      => ['required','string','max:255', Rule::unique('users','username')->ignore($user->id)],
+            'umur'          => ['required', 'string','max:30'],
             'nomor_telepon' => ['nullable','string','max:30'],
             'alamat'        => ['nullable','string','max:255'],
 

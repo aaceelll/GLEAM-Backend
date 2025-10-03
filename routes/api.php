@@ -18,7 +18,7 @@ use App\Http\Controllers\Api\Admin\MateriController;
 
 // Forum
 use App\Http\Controllers\Api\ForumController;
-
+use App\Http\Controllers\Api\User\QuizController;
 // Middleware
 use App\Http\Middleware\RoleMiddleware;
 
@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword']);
+    Route::put('/profile/personal-info', [ProfileController::class, 'updatePersonalInfo']);
 
     // Website Review
     Route::get('/website-review', [WebsiteReviewController::class, 'show']);
@@ -61,12 +62,30 @@ Route::post('/register/staff', [UserManagementController::class, 'store']);
 Route::get('/materi/konten', [MateriController::class, 'listKontenPublic']); // ?slug=diabetes-melitus
 Route::get('/materi/tes/{id}', [MateriController::class, 'showTesPublic']);
 Route::get('/materi/tes-by-bank/{bankId}', [MateriController::class, 'showTesByBank']); // detail langsung dari bank (fallback)
+Route::get('/materi/tes/{id}', [MateriController::class, 'showTesByBank']);
 
 Route::prefix('admin')->group(function () {
     Route::get('/tes', [TesController::class, 'index']);
     Route::post('/tes', [TesController::class, 'store']);
     Route::patch('/tes/{id}', [TesController::class, 'update']);
     Route::delete('/tes/{id}', [TesController::class, 'destroy']);
+    Route::post('/admin/tests/from-bank', [TesController::class, 'createFromBank']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    // ... routes lainnya
+    
+    Route::prefix('user')->group(function () {
+        // ✅ TAMBAHKAN INI
+        Route::get('/tests', [QuizController::class, 'getAvailableTests']);
+        Route::get('/tests/{testId}', [QuizController::class, 'getTestDetail']);
+    });
+
+    // Quiz routes
+        Route::get('/quiz/banks', [QuizController::class, 'banksDefault']);
+        Route::get('/quiz/banks/all', [QuizController::class, 'getAllActiveBanks']);
+        Route::get('/quiz/banks/{bank}', [QuizController::class, 'listSoalPublic']);
+        Route::get('/quiz/banks/{bankId}/detail', [QuizController::class, 'getBankDetail']);
 });
 
 // ====================== ADMIN (protected) ======================
@@ -102,6 +121,7 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
         Route::post('/tes', [TesController::class, 'store']);
         Route::patch('/tes/{id}', [TesController::class, 'update']);
         Route::delete('/tes/{id}', [TesController::class, 'destroy']);
+        Route::post('/tests/publish-from-bank', [TesController::class, 'publishFromBank']);
 
         // -------- Users --------
         Route::apiResource('users', UserManagementController::class);
