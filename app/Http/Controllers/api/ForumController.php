@@ -22,48 +22,44 @@ class ForumController extends Controller
     // Get threads with filter
     public function getThreads(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
         $type = $request->query('type', 'public'); // 'public' or 'private'
 
-        $query = ForumThread::with(['user', 'category', 'assignedNakes'])
-            ->withCount('replies');
+        $query = ForumThread::with(['user', 'category', 'assignedNakes']);
 
-        // Filter berdasarkan type
         if ($type === 'public') {
-            $query->public();
+            $query->where('is_private', false);
         } else {
-            $query->private();
-            // Private: hanya milik user atau assigned ke nakes
+            $query->where('is_private', true);
             if ($user->role !== 'admin') {
-                $query->where(function($q) use ($user) {
+                $query->where(function ($q) use ($user) {
                     $q->where('user_id', $user->id)
                       ->orWhere('assigned_nakes_id', $user->id);
                 });
             }
         }
 
-        // Filter kategori
-        if ($request->category_id) {
+        if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
 
-        // Search
-        if ($request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('title', 'like', "%{$request->search}%")
-                  ->orWhere('content', 'like', "%{$request->search}%");
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('title', 'like', "%{$s}%")
+                  ->orWhere('content', 'like', "%{$s}%");
             });
         }
 
-        // Sorting
         $query->orderBy('is_pinned', 'desc')
               ->orderBy('last_activity_at', 'desc');
 
         $threads = $query->paginate(15);
-        
-        // Check if current user liked each thread
-        foreach ($threads as $thread) {
-            $thread->is_liked = ForumThreadLike::where('thread_id', $thread->id)
+
+        foreach ($threads as $t) {
+            $t->is_liked = ForumThreadLike::where('thread_id', $t->id)
                 ->where('user_id', $user->id)->exists();
         }
 
@@ -71,32 +67,28 @@ class ForumController extends Controller
     }
 
     // Get thread detail
-    public function getThreadDetail($id)
+    public function getThreadDetail(Request $request, $id)
     {
-        $user = auth()->user();
-        
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
         $thread = ForumThread::with(['user', 'category', 'assignedNakes', 'replies.user', 'replies.likes'])
             ->findOrFail($id);
-        
-        // Authorization check untuk private threads
+
         if ($thread->is_private) {
             if ($user->role === 'admin') {
                 return response()->json(['message' => 'Admin tidak memiliki akses ke pertanyaan private'], 403);
             }
-            
             if ($user->role === 'user' && $thread->user_id !== $user->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
-            
             if ($user->role === 'nakes' && $thread->assigned_nakes_id !== $user->id && $thread->user_id !== $user->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }
-        
-        // Increment view
+
         $thread->increment('view_count');
 
-        // Check likes
         $thread->is_liked = ForumThreadLike::where('thread_id', $id)
             ->where('user_id', $user->id)->exists();
 
@@ -108,32 +100,46 @@ class ForumController extends Controller
         return response()->json($thread);
     }
 
-    // Create thread (public or private)
+    // Create thread (category optional)
     public function createThread(Request $request)
     {
         $validated = $request->validate([
-            'category_id' => 'required|exists:forum_categories,id',
-            'title' => 'required|max:255',
-            'content' => 'required',
-            'is_private' => 'boolean',
+            'category_id' => 'nullable|exists:forum_categories,id',
+            'title'       => 'required|max:255',
+            'content'     => 'required',
+            'is_private'  => 'boolean',
         ]);
 
-        $user = auth()->user();
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
+        // Fallback kategori "Umum" (buat kalau kosong)
+        $categoryId = $validated['category_id'] ?? null;
+        if (!$categoryId) {
+            $category = ForumCategory::where('slug', 'umum')->first()
+                ?: ForumCategory::where('name', 'like', '%umum%')->first()
+                ?: ForumCategory::first();
+
+            if (!$category) {
+                $category = ForumCategory::create(['name' => 'Umum', 'slug' => 'umum']);
+            }
+            $categoryId = $category->id;
+        }
 
         $thread = ForumThread::create([
-            'user_id' => $user->id,
-            'category_id' => $validated['category_id'],
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-            'is_private' => $validated['is_private'] ?? false,
-            'last_activity_at' => now(),
+            'user_id'         => $user->id,
+            'category_id'     => $categoryId,
+            'title'           => $validated['title'],
+            'content'         => $validated['content'],
+            'is_private'      => $validated['is_private'] ?? false,
+            'last_activity_at'=> now(),
         ]);
 
-        ForumCategory::find($validated['category_id'])->increment('thread_count');
+        ForumCategory::where('id', $categoryId)->increment('thread_count');
 
         return response()->json([
             'message' => $thread->is_private ? 'Pertanyaan private berhasil dikirim' : 'Thread berhasil dibuat',
-            'thread' => $thread->load('user', 'category')
+            'thread'  => $thread->load('user', 'category')
         ], 201);
     }
 
@@ -141,59 +147,47 @@ class ForumController extends Controller
     public function replyThread(Request $request, $id)
     {
         $validated = $request->validate(['content' => 'required']);
-        $user = auth()->user();
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
         $thread = ForumThread::findOrFail($id);
 
-        // Check authorization untuk private
         if ($thread->is_private) {
-            if ($user->role === 'admin') {
-                return response()->json(['message' => 'Admin tidak bisa reply ke pertanyaan private'], 403);
-            }
-            
-            if ($user->role === 'user' && $thread->user_id !== $user->id) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-            
-            if ($user->role === 'nakes' && $thread->assigned_nakes_id !== $user->id) {
-                return response()->json(['message' => 'Anda belum mengambil pertanyaan ini'], 403);
-            }
+            if ($user->role === 'admin') return response()->json(['message' => 'Admin tidak bisa reply ke pertanyaan private'], 403);
+            if ($user->role === 'user' && $thread->user_id !== $user->id) return response()->json(['message' => 'Unauthorized'], 403);
+            if ($user->role === 'nakes' && $thread->assigned_nakes_id !== $user->id) return response()->json(['message' => 'Anda belum mengambil pertanyaan ini'], 403);
         }
 
-        if ($thread->is_locked) {
-            return response()->json(['message' => 'Thread sudah dikunci'], 403);
-        }
+        if ($thread->is_locked) return response()->json(['message' => 'Thread sudah dikunci'], 403);
 
         $reply = ForumReply::create([
-            'thread_id' => $id,
-            'user_id' => $user->id,
-            'content' => $validated['content'],
+            'thread_id'      => $id,
+            'user_id'        => $user->id,
+            'content'        => $validated['content'],
             'responder_role' => $user->role,
         ]);
 
         $thread->increment('reply_count');
         $thread->update(['last_activity_at' => now()]);
 
-        return response()->json([
-            'message' => 'Balasan berhasil dikirim',
-            'reply' => $reply->load('user')
-        ], 201);
+        return response()->json(['message' => 'Balasan berhasil dikirim', 'reply' => $reply->load('user')], 201);
     }
 
     // Like thread
-    public function likeThread($id)
+    public function likeThread(Request $request, $id)
     {
         $thread = ForumThread::findOrFail($id);
-        $userId = auth()->id();
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
-        $like = ForumThreadLike::where('thread_id', $id)->where('user_id', $userId)->first();
+        $like = ForumThreadLike::where('thread_id', $id)->where('user_id', $user->id)->first();
 
         if ($like) {
             $like->delete();
             $thread->decrement('like_count');
             $liked = false;
         } else {
-            ForumThreadLike::create(['thread_id' => $id, 'user_id' => $userId]);
+            ForumThreadLike::create(['thread_id' => $id, 'user_id' => $user->id]);
             $thread->increment('like_count');
             $liked = true;
         }
@@ -202,19 +196,20 @@ class ForumController extends Controller
     }
 
     // Like reply
-    public function likeReply($id)
+    public function likeReply(Request $request, $id)
     {
         $reply = ForumReply::findOrFail($id);
-        $userId = auth()->id();
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
-        $like = ForumReplyLike::where('reply_id', $id)->where('user_id', $userId)->first();
+        $like = ForumReplyLike::where('reply_id', $id)->where('user_id', $user->id)->first();
 
         if ($like) {
             $like->delete();
             $reply->decrement('like_count');
             $liked = false;
         } else {
-            ForumReplyLike::create(['reply_id' => $id, 'user_id' => $userId]);
+            ForumReplyLike::create(['reply_id' => $id, 'user_id' => $user->id]);
             $reply->increment('like_count');
             $liked = true;
         }
@@ -223,16 +218,15 @@ class ForumController extends Controller
     }
 
     // Delete thread
-    public function deleteThread($id)
+    public function deleteThread(Request $request, $id)
     {
         $thread = ForumThread::findOrFail($id);
-        $user = auth()->user();
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
         if ($thread->user_id !== $user->id && $user->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-
-        // Admin hanya bisa delete public threads
         if ($user->role === 'admin' && $thread->is_private) {
             return response()->json(['message' => 'Admin tidak bisa menghapus pertanyaan private'], 403);
         }
@@ -242,32 +236,29 @@ class ForumController extends Controller
     }
 
     // Delete reply
-    public function deleteReply($id)
+    public function deleteReply(Request $request, $id)
     {
         $reply = ForumReply::findOrFail($id);
-        $user = auth()->user();
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
         if ($reply->user_id !== $user->id && $user->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-
-        // Admin hanya bisa delete di public threads
         if ($user->role === 'admin' && $reply->thread->is_private) {
             return response()->json(['message' => 'Admin tidak bisa menghapus balasan di pertanyaan private'], 403);
         }
 
         $reply->delete();
         $reply->thread->decrement('reply_count');
-        
+
         return response()->json(['message' => 'Balasan berhasil dihapus']);
     }
 
-    // ===== NAKES ONLY: Private Questions Management =====
-    
-    // Get pending private threads (belum diambil nakes)
+    // ===== NAKES ONLY =====
     public function getPendingPrivateThreads()
     {
-        $threads = ForumThread::private()
+        $threads = ForumThread::where('is_private', true)
             ->with(['user', 'category'])
             ->whereNull('assigned_nakes_id')
             ->orderBy('created_at', 'asc')
@@ -276,64 +267,40 @@ class ForumController extends Controller
         return response()->json($threads);
     }
 
-    // Get nakes's assigned private threads
-    public function getMyPrivateThreads()
+    public function getMyPrivateThreads(Request $request)
     {
-        $threads = ForumThread::private()
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
+        $threads = ForumThread::where('is_private', true)
             ->with(['user', 'category', 'replies.user'])
-            ->where('assigned_nakes_id', auth()->id())
+            ->where('assigned_nakes_id', $user->id)
             ->orderBy('updated_at', 'desc')
             ->get();
 
         return response()->json($threads);
     }
 
-    // Assign thread to self (Nakes only)
-    public function assignToSelf($id)
+    public function assignToSelf(Request $request, $id)
     {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
         $thread = ForumThread::findOrFail($id);
 
-        if (!$thread->is_private) {
-            return response()->json(['message' => 'Thread ini bukan pertanyaan private'], 400);
-        }
+        if (!$thread->is_private) return response()->json(['message' => 'Thread ini bukan pertanyaan private'], 400);
+        if ($thread->assigned_nakes_id) return response()->json(['message' => 'Pertanyaan sudah diambil oleh nakes lain'], 400);
 
-        if ($thread->assigned_nakes_id) {
-            return response()->json(['message' => 'Pertanyaan sudah diambil oleh nakes lain'], 400);
-        }
-
-        $thread->update(['assigned_nakes_id' => auth()->id()]);
+        $thread->update(['assigned_nakes_id' => $user->id]);
 
         return response()->json(['message' => 'Pertanyaan berhasil diambil']);
     }
 
-    // Close thread
-    public function closeThread($id)
-    {
-        $thread = ForumThread::findOrFail($id);
-        $user = auth()->user();
-
-        // Authorization
-        if ($thread->user_id !== $user->id && 
-            $thread->assigned_nakes_id !== $user->id && 
-            $user->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $thread->update(['is_locked' => true]);
-
-        return response()->json(['message' => 'Thread ditutup']);
-    }
-
-    // ===== ADMIN ONLY: Manage Public Threads =====
-    
-    // Pin thread (Admin only, public only)
+    // ===== ADMIN ONLY (public only) =====
     public function pinThread($id)
     {
         $thread = ForumThread::findOrFail($id);
-        
-        if ($thread->is_private) {
-            return response()->json(['message' => 'Tidak bisa pin pertanyaan private'], 403);
-        }
+        if ($thread->is_private) return response()->json(['message' => 'Tidak bisa pin pertanyaan private'], 403);
 
         $thread->is_pinned = !$thread->is_pinned;
         $thread->save();
@@ -341,14 +308,10 @@ class ForumController extends Controller
         return response()->json(['message' => 'Thread ' . ($thread->is_pinned ? 'dipin' : 'unpin')]);
     }
 
-    // Lock thread (Admin only, public only)
     public function lockThread($id)
     {
         $thread = ForumThread::findOrFail($id);
-        
-        if ($thread->is_private) {
-            return response()->json(['message' => 'Tidak bisa lock pertanyaan private'], 403);
-        }
+        if ($thread->is_private) return response()->json(['message' => 'Tidak bisa lock pertanyaan private'], 403);
 
         $thread->is_locked = !$thread->is_locked;
         $thread->save();
@@ -356,17 +319,12 @@ class ForumController extends Controller
         return response()->json(['message' => 'Thread ' . ($thread->is_locked ? 'dikunci' : 'dibuka')]);
     }
 
-    // Force delete (Admin only, public only)
     public function forceDeleteThread($id)
     {
         $thread = ForumThread::findOrFail($id);
-        
-        if ($thread->is_private) {
-            return response()->json(['message' => 'Tidak bisa force delete pertanyaan private'], 403);
-        }
+        if ($thread->is_private) return response()->json(['message' => 'Tidak bisa force delete pertanyaan private'], 403);
 
         $thread->delete();
-        
         return response()->json(['message' => 'Thread berhasil dihapus']);
     }
 }
