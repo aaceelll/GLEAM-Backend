@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\Admin\MateriController;
 // Forum
 use App\Http\Controllers\Api\ForumController;
 use App\Http\Controllers\Api\User\QuizController;
+use App\Http\Controllers\Api\User\QuizSubmissionController;
+
 // Middleware
 use App\Http\Middleware\RoleMiddleware;
 
@@ -42,6 +44,23 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// (opsional) pendaftaran staff publik
+Route::post('/register/staff', [UserManagementController::class, 'store']);
+
+// ====================== PUBLIC (USER) ======================
+// Materi untuk halaman user (tanpa prefix /admin)
+Route::get('/materi/konten', [MateriController::class, 'listKontenPublic']); // ?slug=diabetes-melitus
+Route::get('/materi/tes/{id}', [MateriController::class, 'showTesPublic']);
+Route::get('/materi/tes-by-bank/{bankId}', [MateriController::class, 'showTesByBank']); // detail langsung dari bank (fallback)
+
+Route::prefix('admin')->group(function () {
+    Route::get('/tes', [TesController::class, 'index']);
+    Route::post('/tes', [TesController::class, 'store']);
+    Route::patch('/tes/{id}', [TesController::class, 'update']);
+    Route::delete('/tes/{id}', [TesController::class, 'destroy']);
+    Route::post('/admin/tests/from-bank', [TesController::class, 'createFromBank']);
+});
+
 // ============== PROFILE & MISC (protected) ==============
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -52,40 +71,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // Website Review
     Route::get('/website-review', [WebsiteReviewController::class, 'show']);
     Route::post('/website-review', [WebsiteReviewController::class, 'store']);
-});
 
-// (opsional) pendaftaran staff publik
-Route::post('/register/staff', [UserManagementController::class, 'store']);
-
-// ====================== PUBLIC (USER) ======================
-// Materi untuk halaman user (tanpa prefix /admin)
-Route::get('/materi/konten', [MateriController::class, 'listKontenPublic']); // ?slug=diabetes-melitus
-Route::get('/materi/tes/{id}', [MateriController::class, 'showTesPublic']);
-Route::get('/materi/tes-by-bank/{bankId}', [MateriController::class, 'showTesByBank']); // detail langsung dari bank (fallback)
-Route::get('/materi/tes/{id}', [MateriController::class, 'showTesByBank']);
-
-Route::prefix('admin')->group(function () {
-    Route::get('/tes', [TesController::class, 'index']);
-    Route::post('/tes', [TesController::class, 'store']);
-    Route::patch('/tes/{id}', [TesController::class, 'update']);
-    Route::delete('/tes/{id}', [TesController::class, 'destroy']);
-    Route::post('/admin/tests/from-bank', [TesController::class, 'createFromBank']);
-});
-
-Route::middleware('auth:sanctum')->group(function () {
-    // ... routes lainnya
-    
+    // User routes
     Route::prefix('user')->group(function () {
-        // ✅ TAMBAHKAN INI
         Route::get('/tests', [QuizController::class, 'getAvailableTests']);
         Route::get('/tests/{testId}', [QuizController::class, 'getTestDetail']);
     });
 
     // Quiz routes
-        Route::get('/quiz/banks', [QuizController::class, 'banksDefault']);
-        Route::get('/quiz/banks/all', [QuizController::class, 'getAllActiveBanks']);
-        Route::get('/quiz/banks/{bank}', [QuizController::class, 'listSoalPublic']);
-        Route::get('/quiz/banks/{bankId}/detail', [QuizController::class, 'getBankDetail']);
+    Route::get('/quiz/banks', [QuizController::class, 'banksDefault']);
+    Route::get('/quiz/banks/all', [QuizController::class, 'getAllActiveBanks']);
+    Route::get('/quiz/banks/{bank}', [QuizController::class, 'listSoalPublic']);
+    Route::get('/quiz/banks/{bankId}/detail', [QuizController::class, 'getBankDetail']);
+
+    // ✅ Quiz Submission (DI DALAM MIDDLEWARE)
+    Route::post('/quiz/submit', [QuizSubmissionController::class, 'submit']);
+    Route::get('/quiz/history', [QuizSubmissionController::class, 'history']);
+    Route::get('/quiz/history/{id}', [QuizSubmissionController::class, 'detail']);
 });
 
 // ====================== ADMIN (protected) ======================

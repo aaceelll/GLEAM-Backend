@@ -15,22 +15,22 @@ class AuthController extends Controller
         $data = $request->validate([
             'nama'              => ['required','string','max:255'],
             'email'             => ['required','email','max:255','unique:users,email'],
-            'username'          => ['nullable','string','max:255','unique:users,username'],
-            'nomor_telepon'     => [' required','string','max:50'],
-            'tanggal_lahir'     => ['nullable','date'],
-            'jenis_kelamin'     => ['nullable','in:Laki-laki,Perempuan,'],
-            'alamat'            => ['nullable','string','max:255'],
+            'username'          => ['required','string','max:255','unique:users,username'],
+            'nomor_telepon'     => ['required','string','max:50'],
+            'tanggal_lahir'     => ['required','date'],
+            'jenis_kelamin'     => ['required','in:male,female'],
+            'alamat'            => ['required','string','max:255'],
             'password'          => ['required','string','min:8','confirmed'],
         ]);
 
         $user = User::create([
             'nama'           => $data['nama'],
             'email'          => $data['email'],
-            'username'       => $data['username'] ?? null,
+            'username'       => $data['username'],
             'nomor_telepon'  => $data['nomor_telepon'],
-            'tanggal_lahir'  => $data['tanggal_lahir'] ?? null,
-            'jenis_kelamin'  => $data['jenis_kelamin'] ?? null,
-            'alamat'         => $data['alamat'] ?? null,
+            'tanggal_lahir'  => $data['tanggal_lahir'],
+            'jenis_kelamin'  => $data['jenis_kelamin'],
+            'alamat'         => $data['alamat'],
             'role'           => 'user',
             'password'       => Hash::make($data['password']),
         ]);
@@ -79,7 +79,11 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()?->delete();
-        return response()->json(['message' => 'Logged out']);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out'
+        ]);
     }
 
     public function me(Request $request)

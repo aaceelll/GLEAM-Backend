@@ -33,6 +33,7 @@ class BankSoalController extends Controller
     /**
      * POST /api/admin/bank-soal
      * Buat bank soal baru
+     * ✅ AUTO-DETECT TIPE (PRE/POST) DARI NAMA
      */
     public function store(Request $request)
     {
@@ -43,6 +44,36 @@ class BankSoalController extends Controller
         
         $data['status'] = $data['status'] ?? 'draft';
         $bank = BankSoal::create($data);
+
+        // ✅ AUTO-LINK KE MATERI DIABETES MELITUS
+        $materi = Materi::where('slug', 'diabetes-melitus')->first();
+        
+        if ($materi) {
+            // ✅ DETECT TIPE DARI NAMA BANK SOAL
+            $bankNameLower = strtolower($bank->nama);
+            $detectedTipe = str_contains($bankNameLower, 'post') ? 'post' : 'pre';
+            
+            // Cek apakah sudah ada link dengan tipe yang sama
+            $exists = DB::table('materi_bank_soal')
+                ->where('materi_id', $materi->id)
+                ->where('bank_id', $bank->id)
+                ->where('tipe', $detectedTipe)
+                ->exists();
+            
+            if (!$exists) {
+                DB::table('materi_bank_soal')->insert([
+                    'materi_id' => $materi->id,
+                    'bank_id' => $bank->id,
+                    'tipe' => $detectedTipe, // ✅ OTOMATIS DETECT!
+                    'is_active' => true,
+                    'urutan' => DB::table('materi_bank_soal')
+                        ->where('materi_id', $materi->id)
+                        ->max('urutan') + 1 ?? 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
 
         return response()->json($bank, 201);
     }
@@ -111,6 +142,7 @@ class BankSoalController extends Controller
             'bank_id' => $bankId,
             'tipe' => $validated['tipe'],
             'urutan' => $validated['urutan'] ?? 1,
+            'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -134,7 +166,7 @@ class BankSoalController extends Controller
         $links = DB::table('materi_bank_soal as mbs')
             ->join('materi as m', 'm.id', '=', 'mbs.materi_id')
             ->where('mbs.bank_id', $bankId)
-            ->select('m.id', 'm.nama', 'm.slug', 'mbs.tipe', 'mbs.urutan')
+            ->select('m.id', 'm.nama', 'm.slug', 'mbs.tipe', 'mbs.urutan', 'mbs.is_active')
             ->get();
 
         return response()->json($links);
