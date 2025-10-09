@@ -9,7 +9,6 @@ use App\Models\KontenMateri;
 use App\Models\BankSoal;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class MateriController extends Controller
@@ -28,12 +27,14 @@ class MateriController extends Controller
     }
 
     /**
-     * ===== USER: LIST KONTEN + TES/BANK (AUTO) =====
+     * ===== USER: LIST KONTEN + TES (BANKS) =====
      * GET /api/materi/konten?slug=diabetes-melitus
      *
-     * - Prioritas: ambil TES publish (tabel tests)
-     * - Jika kosong: fallback ke BANK SOAL yang terhubung materi (pivot materi_bank_soal),
-     *                tampilkan sebagai "tes" juga agar FE tidak berubah.
+     * FE akan menampilkan daftar konten + daftar kuisioner.
+     * Di sini kuisioner diambil dari BANK SOAL yang:
+     *  - status = publish
+     *  - punya minimal 1 soal
+     * Tidak pakai pivot untuk user (lebih simpel).
      */
     public function listKontenPublic(Request $request): JsonResponse
     {
@@ -49,53 +50,25 @@ class MateriController extends Controller
             ->orderBy('created_at', 'desc')
             ->get(['id','judul','video_id','file_url','deskripsi','created_at','updated_at']);
 
-        // 1) Coba ambil dari TESTS (mode lama)
-        $tests = TestModel::where('materi_id', $materi->id)
+        // Daftar bank publish + punya soal
+        $banks = BankSoal::query()
             ->where('status', 'publish')
-            ->with(['bank.soal' => function ($q) {
-                $q->select('id','bank_id','teks','tipe','opsi');
-            }])
-            ->get(['id','nama','tipe','status','bank_id']);
+            ->withCount('soal')
+            ->having('soal_count', '>', 0)
+            ->orderBy('nama')
+            ->get(['id','nama','tipe']); // tipe opsional: pre/post
 
-        $banks = DB::table('materi_bank_soal as mbs')
-    ->join('question_banks as qb', 'qb.id', '=', 'mbs.bank_id')
-    ->leftJoin('questions as q', 'q.bank_id', '=', 'qb.id')
-    ->where('mbs.materi_id', $materi->id)
-    ->groupBy('qb.id', 'qb.nama')
-    ->select('qb.id as bank_id', 'qb.nama', DB::raw('COUNT(q.id) as total_soal'))
-    ->get();
-
-$tesFormatted = $banks->filter(fn($b) => (int)$b->total_soal > 0) // <-- BARIS INI YG MEMFILTER
-    ->map(function ($b) {
-        return [
-            'id'        => (int)$b->bank_id,
-            'nama'      => $b->nama,
-            'totalSoal' => (int)$b->total_soal,
-            'bank_id'   => (int)$b->bank_id,
-            'source'    => 'banks',
-        ];
-    })->values();
-
-        // 2) Fallback: ambil BANK SOAL yang terhubung ke materi via pivot `materi_bank_soal`
-        // Hitung jumlah soal per bank, hanya tampilkan yang punya >=1 soal
-        $banks = DB::table('materi_bank_soal as mbs')
-            ->join('question_banks as qb', 'qb.id', '=', 'mbs.bank_id')
-            ->leftJoin('questions as q', 'q.bank_id', '=', 'qb.id')
-            ->where('mbs.materi_id', $materi->id)
-            ->groupBy('qb.id', 'qb.nama')
-            ->select('qb.id as bank_id', 'qb.nama', DB::raw('COUNT(q.id) as total_soal'))
-            ->get();
-
-        $tesFormatted = $banks->filter(fn($b) => (int)$b->total_soal > 0)->map(function ($b) {
-            // Id kita set = bank_id saja. Frontend nanti panggil /api/materi/tes-by-bank/{bank_id}
+        // Bentuk payload supaya FE tetap konsisten
+        $tesFormatted = $banks->map(function ($b) {
             return [
-                'id'          => (int)$b->bank_id,      // gunakan sebagai identifier
+                'id'          => (int) $b->id,
                 'nama'        => $b->nama,
                 'deskripsi'   => null,
-                'totalSoal'   => (int)$b->total_soal,
+                'totalSoal'   => (int) $b->soal_count,
                 'durasiMenit' => null,
-                'bank_id'     => (int)$b->bank_id,
-                'source'      => 'banks',               // penanda "mode fallback"
+                'bank_id'     => (int) $b->id,
+                'source'      => 'banks',
+                'tipe'        => $b->tipe ?? null, // kalau kolom tipe ada
             ];
         })->values();
 
@@ -103,8 +76,9 @@ $tesFormatted = $banks->filter(fn($b) => (int)$b->total_soal > 0) // <-- BARIS I
     }
 
     /**
-     * ===== USER: DETAIL TES (MODE TESTS) =====
+     * ===== USER: DETAIL TES (MODE TESTS legacy) =====
      * GET /api/materi/tes/{id}
+     * (biarkan ada untuk kompatibilitas; tidak dipakai kalau kamu hanya pakai banks)
      */
     public function showTesPublic($id): JsonResponse
     {
@@ -126,7 +100,7 @@ $tesFormatted = $banks->filter(fn($b) => (int)$b->total_soal > 0) // <-- BARIS I
     }
 
     /**
-     * ===== USER: DETAIL TES (MODE BANKS/FALLBACK) =====
+     * ===== USER: DETAIL TES (MODE BANKS) =====
      * GET /api/materi/tes-by-bank/{bankId}
      */
     public function showTesByBank($bankId): JsonResponse
