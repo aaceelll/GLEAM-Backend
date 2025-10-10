@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ForumController;
 use App\Http\Controllers\Api\User\QuizController;
 use App\Http\Controllers\Api\User\QuizSubmissionController;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Controllers\Api\LocationController;
 
 /* Health */
 Route::get('/health', fn () => response()->json(['ok' => true]));
@@ -118,4 +119,12 @@ Route::middleware('auth:sanctum')->prefix('forum')->group(function () {
     Route::get('/private/my-assignments', [ForumController::class, 'getMyPrivateThreads']);
     Route::post('/threads/{id}/assign', [ForumController::class, 'assignToSelf']);
     Route::patch('/threads/{id}/close', [ForumController::class, 'closeThread']);
+});
+
+/* Location - Dashboard Manajemen */
+Route::middleware('auth:sanctum')->prefix('locations')->group(function () {
+    Route::get('/users', [LocationController::class, 'getUsersWithLocations']);
+    Route::get('/statistics', [LocationController::class, 'getStatistics']);
+    Route::get('/users-by-rw', [LocationController::class, 'getUsersByRW']);
+    Route::get('/user/{id}', [LocationController::class, 'getUserDetail']);
 });
