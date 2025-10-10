@@ -36,6 +36,11 @@ class User extends Authenticatable
     'durasi_diagnosis',
     'berobat_ke_dokter',
     'password',
+     'kelurahan',
+     'rw',
+     'latitude',
+     'longitude',
+     'address',
 ];
 
 

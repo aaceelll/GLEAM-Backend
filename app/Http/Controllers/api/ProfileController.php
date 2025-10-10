@@ -27,18 +27,15 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $data = $request->validate([
-            // ---- Field akun umum
-            'nama'          => ['required','string','max:255'],
-            // 'email'         => ['required','email', Rule::unique('users','email')->ignore($user->id)],
-            // 'username'      => ['required','string','max:255', Rule::unique('users','username')->ignore($user->id)],
-            'umur'          => ['required', 'string','max:30'],
+            // ---- Field akun umum (sometimes = optional, hanya validate kalau dikirim)
+            'nama'          => ['sometimes','required','string','max:255'],
+            'umur'          => ['nullable', 'integer','min:0'],
             'nomor_telepon' => ['nullable','string','max:30'],
             'alamat'        => ['nullable','string','max:255'],
 
             // ---- Field profil kesehatan
             'tempat_lahir'                => 'nullable|string|max:255',
             'tanggal_lahir'               => 'nullable|date',
-            'umur'                        => 'nullable|integer|min:0',
             'jenis_kelamin'               => 'nullable|in:Laki-laki,Perempuan',
             'pekerjaan'                   => 'nullable|string|max:255',
             'pendidikan_terakhir'         => 'nullable|string|max:255',
@@ -53,6 +50,13 @@ class ProfileController extends Controller
             'lama_terdiagnosis'           => 'nullable|string|max:255',
             'berobat_ke_dokter'           => 'nullable|in:Sudah,Belum',
             'sudah_berobat'               => 'nullable|in:Sudah,Belum Pernah',
+
+            // ---- Field lokasi
+            'kelurahan'                   => 'nullable|in:Pedalangan,Padangsari',
+            'rw'                          => 'nullable|string|max:10',
+            'latitude'                    => 'nullable|numeric|between:-90,90',
+            'longitude'                   => 'nullable|numeric|between:-180,180',
+            'address'                     => 'nullable|string|max:500',
         ]);
 
         // Auto-calc BMI jika ada berat & tinggi
@@ -69,7 +73,7 @@ class ProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
-            'user'    => $user->fresh(), // Intelephense aman karena sudah kita type-hint
+            'user'    => $user->fresh(),
         ]);
     }
 
@@ -94,4 +98,3 @@ class ProfileController extends Controller
         return response()->json(['success' => true, 'message' => 'Password berhasil diperbarui.']);
     }
 }
-        

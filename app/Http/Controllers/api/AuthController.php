@@ -18,7 +18,7 @@ class AuthController extends Controller
             'username'          => ['required','string','max:255','unique:users,username'],
             'nomor_telepon'     => ['required','string','max:50'],
             'tanggal_lahir'     => ['required','date'],
-            'jenis_kelamin'     => ['required','in:male,female'],
+            'jenis_kelamin'         => 'required|in:Laki-laki,Perempuan',
             'alamat'            => ['required','string','max:255'],
             'password'          => ['required','string','min:8','confirmed'],
         ]);
