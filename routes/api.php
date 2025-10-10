@@ -102,6 +102,22 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
             Route::post('/threads/{id}/lock', [ForumController::class, 'lockThread']);
             Route::delete('/threads/{id}/force', [ForumController::class, 'forceDeleteThread']);
         });
+        
+        // Quiz Submissions untuk Admin
+        Route::prefix('quiz')->group(function () {
+            Route::get('/submissions', [QuizSubmissionController::class, 'allSubmissions']);
+            Route::get('/submissions/{id}', [QuizSubmissionController::class, 'submissionDetail']);
+        });
+    });
+
+/* Manajemen - Quiz Submissions */
+Route::middleware(['auth:sanctum', RoleMiddleware::class . ':manajemen'])
+    ->prefix('manajemen')
+    ->group(function () {
+        Route::prefix('quiz')->group(function () {
+            Route::get('/submissions', [QuizSubmissionController::class, 'allSubmissions']);
+            Route::get('/submissions/{id}', [QuizSubmissionController::class, 'submissionDetail']);
+        });
     });
 
 /* Forum */

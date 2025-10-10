@@ -6,91 +6,148 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    /**
+     * Register User
+     */
     public function registerUser(Request $request)
     {
-        $data = $request->validate([
-            'nama'              => ['required','string','max:255'],
-            'email'             => ['required','email','max:255','unique:users,email'],
-            'username'          => ['required','string','max:255','unique:users,username'],
-            'nomor_telepon'     => ['required','string','max:50'],
-            'tanggal_lahir'     => ['required','date'],
-            'jenis_kelamin'         => 'required|in:Laki-laki,Perempuan',
-            'alamat'            => ['required','string','max:255'],
-            'password'          => ['required','string','min:8','confirmed'],
+        $validator = Validator::make($request->all(), [
+            'nama' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|string|min:6',
+            'tanggal_lahir' => 'nullable|date',
+            'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
+            'alamat' => 'nullable|string',
+            'rt' => 'nullable|string|max:10',
+            'rw' => 'nullable|string|max:10',
+            'no_telepon' => 'nullable|string|max:20',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $user = User::create([
-            'nama'           => $data['nama'],
-            'email'          => $data['email'],
-            'username'       => $data['username'],
-            'nomor_telepon'  => $data['nomor_telepon'],
-            'tanggal_lahir'  => $data['tanggal_lahir'],
-            'jenis_kelamin'  => $data['jenis_kelamin'],
-            'alamat'         => $data['alamat'],
-            'role'           => 'user',
-            'password'       => Hash::make($data['password']),
+            'nama' => $request->nama,
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'user',
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'jenis_kelamin' => $request->jenis_kelamin,
+            'alamat' => $request->alamat,
+            'rt' => $request->rt,
+            'rw' => $request->rw,
+            'no_telepon' => $request->no_telepon,
         ]);
 
-        $token = $user->createToken('api')->plainTextToken;
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'token' => $token,
-            'user'  => $user,
+            'message' => 'Registrasi berhasil',
+            'user' => $user,
+            'token' => $token
         ], 201);
     }
 
+    /**
+     * Login - Support Email OR Username
+     */
     public function login(Request $request)
     {
-        $cred = $request->validate([
-            'email'    => ['required','email'],
-            'password' => ['required','string'],
+        $validator = Validator::make($request->all(), [
+            'login' => 'required|string', // Bisa email atau username
+            'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $cred['email'])->first();
-
-        if (!$user || !Hash::check($cred['password'], $user->password)) {
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email atau password salah'
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Deteksi apakah input email atau username
+        $loginField = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        // Cari user berdasarkan email atau username
+        $user = User::where($loginField, $request->login)->first();
+
+        // Validasi user dan password
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email/Username atau password salah'
             ], 401);
         }
 
-        $token = $user->createToken('api')->plainTextToken;
+        // Generate token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'token' => $token,
-            'user'  => [
-                'id'            => $user->id,
-                'nama'          => $user->nama,
-                'email'         => $user->email,
-                'username'      => $user->username,
-                'role'          => $user->role,
-                'nomor_telepon' => $user->nomor_telepon,
+            'message' => 'Login berhasil',
+            'user' => [
+                'id' => $user->id,
+                'nama' => $user->nama,
+                'username' => $user->username,
+                'email' => $user->email,
+                'role' => $user->role,
+                'tanggal_lahir' => $user->tanggal_lahir,
+                'jenis_kelamin' => $user->jenis_kelamin,
+                'alamat' => $user->alamat,
+                'rt' => $user->rt,
+                'rw' => $user->rw,
+                'no_telepon' => $user->no_telepon,
             ],
-        ]);
+            'token' => $token
+        ], 200);
     }
 
+    /**
+     * Logout
+     */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()?->delete();
-        
+        $request->user()->currentAccessToken()->delete();
+
         return response()->json([
             'success' => true,
-            'message' => 'Logged out'
+            'message' => 'Logout berhasil'
         ]);
     }
 
+    /**
+     * Get Current User
+     */
     public function me(Request $request)
     {
+        $user = $request->user();
+
         return response()->json([
             'success' => true,
-            'data' => $request->user()
+            'user' => [
+                'id' => $user->id,
+                'nama' => $user->nama,
+                'username' => $user->username,
+                'email' => $user->email,
+                'role' => $user->role,
+                'tanggal_lahir' => $user->tanggal_lahir,
+                'jenis_kelamin' => $user->jenis_kelamin,
+                'alamat' => $user->alamat,
+                'rt' => $user->rt,
+                'rw' => $user->rw,
+                'no_telepon' => $user->no_telepon,
+            ]
         ]);
     }
 }
