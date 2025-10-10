@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\User\QuizController;
 use App\Http\Controllers\Api\User\QuizSubmissionController;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\User\MyScreeningController;
 
 /* Health */
 Route::get('/health', fn () => response()->json(['ok' => true]));
@@ -55,6 +56,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tests/{testId}', [QuizController::class, 'getTestDetail']);
     });
 
+    // untuk ambil riwayat screening user sesuai akun yang login
+    Route::middleware('auth:sanctum')->prefix('user')->group(function () {
+        Route::get('diabetes-screenings', [MyScreeningController::class, 'index']);
+        Route::get('diabetes-screenings/{id}', [MyScreeningController::class, 'show']);
+    });
+
     Route::get('/quiz/banks', [QuizController::class, 'banksDefault']);
     Route::get('/quiz/banks/all', [QuizController::class, 'getAllActiveBanks']);
     Route::get('/quiz/banks/{bank}', [QuizController::class, 'listSoalPublic']);
@@ -65,13 +72,11 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 /* Nakes  */
-Route::middleware(['auth:sanctum'])
-    ->prefix('nakes')
-    ->group(function () {
-        Route::get('/diabetes-screenings', [ScreeningController::class, 'index']);
-        Route::get('/diabetes-screenings/{id}', [ScreeningController::class, 'show']);
-        Route::get('/users/{userId}/diabetes-screenings', [ScreeningController::class, 'byUser']);
-    });
+Route::middleware('auth:sanctum')->prefix('nakes')->group(function () {
+    Route::get('diabetes-screenings', [ScreeningController::class, 'index']);
+    Route::get('diabetes-screenings/{id}', [ScreeningController::class, 'show']);
+    Route::get('users/{userId}/diabetes-screenings', [ScreeningController::class, 'byUser']);
+});
 
 /* Admin */
 Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
