@@ -19,13 +19,14 @@ class AuthController extends Controller
             'nama' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|email|unique:users',
+            'nomor_telepon' => 'required|string|max:20',
             'password' => 'required|string|min:6',
+            'password_confirmation' => 'required|same:password',
             'tanggal_lahir' => 'nullable|date',
             'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
             'alamat' => 'nullable|string',
             'rt' => 'nullable|string|max:10',
             'rw' => 'nullable|string|max:10',
-            'no_telepon' => 'nullable|string|max:20',
         ]);
 
         if ($validator->fails()) {
@@ -41,12 +42,12 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'user',
+            'nomor_telepon' => $request->nomor_telepon,
             'tanggal_lahir' => $request->tanggal_lahir,
             'jenis_kelamin' => $request->jenis_kelamin,
             'alamat' => $request->alamat,
             'rt' => $request->rt,
             'rw' => $request->rw,
-            'no_telepon' => $request->no_telepon,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -102,12 +103,12 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'role' => $user->role,
+                'nomor_telepon' => $user->nomor_telepon,
                 'tanggal_lahir' => $user->tanggal_lahir,
                 'jenis_kelamin' => $user->jenis_kelamin,
                 'alamat' => $user->alamat,
                 'rt' => $user->rt,
                 'rw' => $user->rw,
-                'no_telepon' => $user->no_telepon,
             ],
             'token' => $token
         ], 200);
@@ -141,13 +142,57 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'role' => $user->role,
+                'nomor_telepon' => $user->nomor_telepon,
                 'tanggal_lahir' => $user->tanggal_lahir,
                 'jenis_kelamin' => $user->jenis_kelamin,
                 'alamat' => $user->alamat,
                 'rt' => $user->rt,
                 'rw' => $user->rw,
-                'no_telepon' => $user->no_telepon,
             ]
         ]);
     }
+
+    /**
+ * Change Password - Untuk user yang lupa password
+ */
+public function changePassword(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'login' => 'required|string',
+        'old_password' => 'required|string',
+        'password' => 'required|string|min:6|confirmed',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    $loginField = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+    $user = User::where($loginField, $request->login)->first();
+
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Email/Username tidak ditemukan'
+        ], 404);
+    }
+
+    if (!Hash::check($request->old_password, $user->password)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Password lama tidak sesuai'
+        ], 401);
+    }
+
+    $user->password = Hash::make($request->password);
+    $user->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password berhasil diubah.'
+    ], 200);
+}
 }

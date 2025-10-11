@@ -25,7 +25,7 @@ Route::get('/health', fn () => response()->json(['ok' => true]));
 Route::prefix('auth')->group(function () {
     Route::post('/register/user', [AuthController::class, 'registerUser']);
     Route::post('/login', [AuthController::class, 'login']);
-
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
