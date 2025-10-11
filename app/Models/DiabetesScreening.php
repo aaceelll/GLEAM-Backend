@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
+use DateTimeInterface;
+use DateTimeZone;
 use Illuminate\Database\Eloquent\Model;
 
 class DiabetesScreening extends Model
@@ -28,4 +31,17 @@ class DiabetesScreening extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Pastikan JSON tanggal keluar dalam RFC3339 + offset TZ app (Asia/Jakarta).
+     * Ini mencegah browser melakukan konversi yang bikin “mundur/maju 7 jam”.
+     */
+    protected function serializeDate(DateTimeInterface $date): string
+    {
+        $tz = new DateTimeZone(config('app.timezone', 'Asia/Jakarta'));
+        return Carbon::instance($date)   // pastikan tipe Carbon
+            ->setTimezone($tz)           // set offset Asia/Jakarta
+            ->toAtomString();            // RFC3339: 2025-10-10T21:28:00+07:00
+    }
+
 }
