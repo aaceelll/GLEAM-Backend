@@ -62,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('diabetes-screenings/{id}', [MyScreeningController::class, 'show']);
     });
 
+    // === NEW: bank soal publish & aktif yang terhubung ke materi (by slug / materi_id)
+    Route::get('/quiz/banks/by-materi', [QuizController::class, 'banksByMateri']);
+
     Route::get('/quiz/banks', [QuizController::class, 'banksDefault']);
     Route::get('/quiz/banks/all', [QuizController::class, 'getAllActiveBanks']);
     Route::get('/quiz/banks/{bank}', [QuizController::class, 'listSoalPublic']);

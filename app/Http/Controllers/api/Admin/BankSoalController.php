@@ -8,26 +8,27 @@ use App\Models\Materi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+// ... (namespace & uses tetap)
 class BankSoalController extends Controller
 {
-    /**
-     * GET /api/admin/bank-soal
-     * List semua bank soal dengan jumlah soal
-     */
     public function index()
     {
         $banks = BankSoal::withCount('soal')
             ->orderByDesc('updated_at')
             ->get()
-            ->map(fn($b) => [
-                'id' => $b->id,
-                'nama' => $b->nama,
-                'status' => $b->status,
-                'totalSoal' => $b->soal_count,
-                'updatedAt' => $b->updated_at,
-            ]);
+            ->map(function ($b) {
+                $total = (int) $b->soal_count;
+                return [
+                    'id'        => $b->id,
+                    'nama'      => $b->nama,
+                    'status'    => $b->status,
+                    'totalSoal' => $total,
+                    'updatedAt' => optional($b->updated_at)->toDateTimeString(),
+                    'isShown'   => $total > 0,
+                ];
+            });
 
-        return response()->json($banks);
+        return response()->json(['data' => $banks]);
     }
 
     /**
