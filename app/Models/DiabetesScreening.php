@@ -12,19 +12,33 @@ class DiabetesScreening extends Model
     protected $table = 'diabetes_screenings';
 
     protected $fillable = [
-        'patient_name','user_id','nakes_id','age','gender',
-        'systolic_bp','diastolic_bp','heart_disease','smoking_history',
-        'bmi','blood_glucose_level','diabetes_probability',
+        'patient_name',
+        'user_id',
+        'nakes_id',
+        'age',
+        'gender',
+        'systolic_bp',
+        'diastolic_bp',
+        'heart_disease',
+        'smoking_history',
+        'bmi',
+        'blood_glucose_level',
+        'diabetes_probability',
+        'diabetes_result',
+        'bp_classification',
+        'bp_recommendation',
+        'full_result',
     ];
 
     protected $casts = [
         'age' => 'integer',
-        'systolic_bp' => 'float',
-        'diastolic_bp' => 'float',
-        'bmi' => 'float',
-        'blood_glucose_level' => 'float',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'systolic_bp' => 'integer',
+        'diastolic_bp' => 'integer',
+        'heart_disease' => 'boolean',
+        'bmi' => 'decimal:2',
+        'blood_glucose_level' => 'decimal:2',
+        'diabetes_probability' => 'decimal:4',
+        'full_result' => 'array', // JSON
     ];
 
     public function user()

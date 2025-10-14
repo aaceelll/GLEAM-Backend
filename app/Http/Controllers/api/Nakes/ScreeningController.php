@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\Nakes;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreScreeningRequest;
 use App\Models\DiabetesScreening;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class ScreeningController extends Controller
 {
@@ -86,5 +88,84 @@ class ScreeningController extends Controller
         $num = is_string($val) ? str_replace('%', '', $val) : $val;
         $f = floatval($num);
         return is_finite($f) ? $f : null;
+    }
+
+    public function store(StoreScreeningRequest $request): JsonResponse
+    {
+        $payload = $request->validated();
+
+        $screening = DiabetesScreening::create([
+            'patient_name'          => $payload['patientName'],
+            'user_id'               => $payload['userId'] ?? null,
+            'nakes_id'              => $payload['nakesId'] ?? null,
+
+            'age'                   => $payload['age'] ?? null,
+            'gender'                => $payload['gender'] ?? null,
+
+            'systolic_bp'           => $payload['systolic_bp'] ?? null,
+            'diastolic_bp'          => $payload['diastolic_bp'] ?? null,
+            'heart_disease'         => $payload['heart_disease'] ?? false,
+            'smoking_history'       => $payload['smoking_history'] ?? null,
+
+            'bmi'                   => $payload['bmi'] ?? null,
+            'blood_glucose_level'   => $payload['blood_glucose_level'] ?? null,
+            'diabetes_probability'  => $payload['diabetes_probability'] ?? null,
+            'diabetes_result'       => $payload['diabetes_result'] ?? null,
+
+            'bp_classification'     => $payload['bp_classification'] ?? null,
+            'bp_recommendation'     => $payload['bp_recommendation'] ?? null,
+
+            'full_result'           => $payload['full_result'] ?? null, // otomatis cast ke JSON
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'id'      => $screening->id,
+            'data'    => $screening,
+        ], 201);
+    }
+
+        public function latest(Request $request): JsonResponse
+    {
+        $limit = (int) $request->query('limit', 10);
+        if ($limit < 1)   $limit = 1;
+        if ($limit > 50)  $limit = 50;
+
+        // Pilih kolom yang dibutuhkan saja (opsional)
+        $columns = [
+            'id',
+            'patient_name',
+            'user_id',
+            'nakes_id',
+            'age',
+            'gender',
+            'systolic_bp',
+            'diastolic_bp',
+            'heart_disease',
+            'smoking_history',
+            'bmi',
+            'blood_glucose_level',
+            'diabetes_probability',
+            'diabetes_result',
+            'bp_classification',
+            'bp_recommendation',
+            'full_result',
+            'created_at',
+            'updated_at',
+        ];
+
+        $latest = DiabetesScreening::select($columns)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $history = DiabetesScreening::select($columns)
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'latest'  => $latest,            // null jika belum ada data
+            'history' => $history,           // array (0..limit)
+        ], 200);
     }
 }
