@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\User\QuizSubmissionController;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\User\MyScreeningController;
+use App\Http\Controllers\Api\Manajemen\DashboardController as ManajemenDashboardController;
 
 /* Health */
 Route::get('/health', fn () => response()->json(['ok' => true]));
@@ -118,15 +119,19 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
         });
     });
 
-/* Manajemen - Quiz Submissions */
-Route::middleware(['auth:sanctum', RoleMiddleware::class . ':manajemen'])
+Route::middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class . ':manajemen'])
     ->prefix('manajemen')
     ->group(function () {
+        // Statistik beranda manajemen
+        Route::get('/statistics', [ManajemenDashboardController::class, 'statistics']);
+
+        // Quiz Submissions (punyamu tadi)
         Route::prefix('quiz')->group(function () {
-            Route::get('/submissions', [QuizSubmissionController::class, 'allSubmissions']);
-            Route::get('/submissions/{id}', [QuizSubmissionController::class, 'submissionDetail']);
+            Route::get('/submissions', [\App\Http\Controllers\Api\User\QuizSubmissionController::class, 'allSubmissions']);
+            Route::get('/submissions/{id}', [\App\Http\Controllers\Api\User\QuizSubmissionController::class, 'submissionDetail']);
         });
     });
+
 
 /* Forum */
 Route::middleware('auth:sanctum')->prefix('forum')->group(function () {
