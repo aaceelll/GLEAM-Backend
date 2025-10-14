@@ -19,6 +19,8 @@ use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\User\MyScreeningController;
 use App\Http\Controllers\Api\Manajemen\DashboardController as ManajemenDashboardController;
+use App\Http\Controllers\Api\User\DashboardController as UserDashboardController;
+
 
 /* Health */
 Route::get('/health', fn () => response()->json(['ok' => true]));
@@ -61,6 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('auth:sanctum')->prefix('user')->group(function () {
         Route::get('diabetes-screenings', [MyScreeningController::class, 'index']);
         Route::get('diabetes-screenings/{id}', [MyScreeningController::class, 'show']);
+        // Dashboard User: glukosa terakhir & waktu
+        Route::get('/dashboard/summary', [UserDashboardController::class, 'summary']);
     });
 
     // === NEW: bank soal publish & aktif yang terhubung ke materi (by slug / materi_id)
