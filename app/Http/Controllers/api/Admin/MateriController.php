@@ -29,12 +29,6 @@ class MateriController extends Controller
     /**
      * ===== USER: LIST KONTEN + TES (BANKS) =====
      * GET /api/materi/konten?slug=diabetes-melitus
-     *
-     * FE akan menampilkan daftar konten + daftar kuisioner.
-     * Di sini kuisioner diambil dari BANK SOAL yang:
-     *  - status = publish
-     *  - punya minimal 1 soal
-     * Tidak pakai pivot untuk user (lebih simpel).
      */
     public function listKontenPublic(Request $request): JsonResponse
     {
@@ -56,9 +50,8 @@ class MateriController extends Controller
             ->withCount('soal')
             ->having('soal_count', '>', 0)
             ->orderBy('nama')
-            ->get(['id','nama','tipe']); // tipe opsional: pre/post
+            ->get(['id','nama','tipe']);
 
-        // Bentuk payload supaya FE tetap konsisten
         $tesFormatted = $banks->map(function ($b) {
             return [
                 'id'          => (int) $b->id,
@@ -68,7 +61,7 @@ class MateriController extends Controller
                 'durasiMenit' => null,
                 'bank_id'     => (int) $b->id,
                 'source'      => 'banks',
-                'tipe'        => $b->tipe ?? null, // kalau kolom tipe ada
+                'tipe'        => $b->tipe ?? null,
             ];
         })->values();
 
@@ -78,7 +71,6 @@ class MateriController extends Controller
     /**
      * ===== USER: DETAIL TES (MODE TESTS legacy) =====
      * GET /api/materi/tes/{id}
-     * (biarkan ada untuk kompatibilitas; tidak dipakai kalau kamu hanya pakai banks)
      */
     public function showTesPublic($id): JsonResponse
     {
@@ -127,7 +119,10 @@ class MateriController extends Controller
         $slug = $request->query('slug', 'diabetes-melitus');
 
         $materi = Materi::where('slug', $slug)->first();
-        if (!$materi) return response()->json(['data' => []], 200);
+        if (!$materi) {
+            // aman: FE tetap dapat array kosong (tidak error)
+            return response()->json(['data' => []], 200);
+        }
 
         $konten = KontenMateri::where('materi_id', $materi->id)
             ->orderBy('created_at', 'desc')->get();
@@ -138,18 +133,25 @@ class MateriController extends Controller
     /**
      * ===== ADMIN: TAMBAH KONTEN =====
      * POST /api/admin/materi/konten
+     * Body: slug (opsional), judul, deskripsi, video_id (opsional), file_pdf
      */
     public function storeKonten(Request $request): JsonResponse
     {
         $request->validate([
+            'slug'      => 'nullable|string',
             'judul'     => 'required|string|max:255',
             'video_id'  => 'nullable|string',
             'file_pdf'  => 'required|file|mimes:pdf|max:10240',
             'deskripsi' => 'required|string',
         ]);
 
-        $materi = Materi::where('slug', 'diabetes-melitus')->first();
-        if (!$materi) return response()->json(['message' => 'Materi tidak ditemukan'], 404);
+        $slug = $request->input('slug', 'diabetes-melitus');
+
+        // fleksibel: buat materi jika belum ada
+        $materi = Materi::firstOrCreate(
+            ['slug' => $slug],
+            ['nama' => ucwords(str_replace('-', ' ', $slug))]
+        );
 
         $path = $request->file('file_pdf')->store('materi', 'public');
         $url  = asset(Storage::url($path));
@@ -168,10 +170,12 @@ class MateriController extends Controller
     /**
      * ===== ADMIN: UPDATE KONTEN =====
      * PATCH /api/admin/materi/konten/{id}
+     * Body: slug (opsional), judul, deskripsi, video_id (opsional), file_pdf (opsional)
      */
     public function updateKonten(Request $request, $id): JsonResponse
     {
         $request->validate([
+            'slug'      => 'nullable|string',
             'judul'     => 'required|string|max:255',
             'video_id'  => 'nullable|string',
             'file_pdf'  => 'nullable|file|mimes:pdf|max:10240',
@@ -179,6 +183,14 @@ class MateriController extends Controller
         ]);
 
         $konten = KontenMateri::findOrFail($id);
+
+        if ($request->filled('slug')) {
+            $materi = Materi::firstOrCreate(
+                ['slug' => $request->input('slug')],
+                ['nama' => ucwords(str_replace('-', ' ', $request->input('slug')))]
+            );
+            $konten->materi_id = $materi->id;
+        }
 
         if ($request->hasFile('file_pdf')) {
             $this->deleteFileByPublicUrl($konten->file_url);
