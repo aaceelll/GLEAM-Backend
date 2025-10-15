@@ -34,7 +34,7 @@ class DiabetesScreening extends Model
         'age' => 'integer',
         'systolic_bp' => 'integer',
         'diastolic_bp' => 'integer',
-        'heart_disease' => 'boolean',
+        'heart_disease' => 'string',
         'bmi' => 'decimal:2',
         'blood_glucose_level' => 'decimal:2',
         'diabetes_probability' => 'string',
