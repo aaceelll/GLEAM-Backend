@@ -13,11 +13,12 @@ class StoreScreeningRequest extends FormRequest
 
     protected function prepareForValidation()
     {
+        $hd = strtolower((string) ($this->heart_disease ?? ''));
         $this->merge([
-            // Ubah "true"/"false" string dari frontend jadi boolean PHP
-            'heart_disease' => filter_var($this->heart_disease, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+            // Heart disease selalu "Ya" atau "Tidak"
+            'heart_disease' => in_array($hd, ['true', '1', 'ya'], true) ? 'Ya' : 'Tidak',
 
-            // Pastikan numeric dan dalam bentuk float
+            // Diabetes tetap seperti sebelumnya
             'diabetes_probability' => is_numeric($this->diabetes_probability)
                 ? floatval($this->diabetes_probability)
                 : null,
@@ -36,7 +37,7 @@ class StoreScreeningRequest extends FormRequest
 
             'systolic_bp'           => ['nullable', 'integer', 'min:0', 'max:300'],
             'diastolic_bp'          => ['nullable', 'integer', 'min:0', 'max:200'],
-            'heart_disease'         => ['nullable', 'boolean'],
+            'heart_disease'         => ['nullable', 'in:Ya,Tidak'],
             'smoking_history'       => ['nullable', 'string', 'max:64'],
 
             'bmi'                   => ['nullable', 'numeric', 'min:0', 'max:200'],
