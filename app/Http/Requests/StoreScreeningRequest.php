@@ -8,8 +8,20 @@ class StoreScreeningRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // true jika public; kalau butuh auth, ganti ke auth()->check()
         return true;
+    }
+
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            // Ubah "true"/"false" string dari frontend jadi boolean PHP
+            'heart_disease' => filter_var($this->heart_disease, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+
+            // Pastikan numeric dan dalam bentuk float
+            'diabetes_probability' => is_numeric($this->diabetes_probability)
+                ? floatval($this->diabetes_probability)
+                : null,
+        ]);
     }
 
     public function rules(): array
@@ -35,7 +47,7 @@ class StoreScreeningRequest extends FormRequest
             'bp_classification'     => ['nullable', 'string', 'max:64'],
             'bp_recommendation'     => ['nullable', 'string', 'max:255'],
 
-            'full_result'           => ['nullable', 'array'], // JSON object
+            'full_result'           => ['nullable', 'array'],
         ];
     }
 
