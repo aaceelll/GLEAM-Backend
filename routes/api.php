@@ -26,7 +26,7 @@ use App\Http\Controllers\api\User\DashboardController as UserDashboardController
 /* Health */
 Route::get('/health', fn () => response()->json(['ok' => true]));
 
-
+Route::get('/patients/search', [PatientController::class, 'search']);
 Route::post('/screenings', [ScreeningController::class, 'store']);
 Route::get('/screenings/latest', [ScreeningController::class, 'latest']);
 
