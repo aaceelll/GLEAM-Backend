@@ -60,4 +60,9 @@ class User extends Authenticatable
         'indeks_bmi' => 'decimal:2',
         'has_completed_profile' => 'boolean',
     ];
+
+    public function scopePatients($query)
+    {
+        return $query->where('role', 'user');
+    }
 }
