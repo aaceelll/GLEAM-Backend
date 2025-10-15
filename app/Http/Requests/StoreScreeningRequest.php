@@ -47,7 +47,6 @@ class StoreScreeningRequest extends FormRequest
 
             'bp_classification'     => ['nullable', 'string', 'max:64'],
             'bp_recommendation'     => ['nullable', 'string', 'max:255'],
-
             'full_result'           => ['nullable', 'array'],
         ];
     }
