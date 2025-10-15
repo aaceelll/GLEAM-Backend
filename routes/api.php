@@ -2,25 +2,25 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ProfileController;
-use App\Http\Controllers\Api\WebsiteReviewController;
-use App\Http\Controllers\Api\Admin\DashboardController;
-use App\Http\Controllers\Api\Admin\UserManagementController;
-use App\Http\Controllers\Api\Admin\BankSoalController;
-use App\Http\Controllers\Api\Admin\SoalController;
-use App\Http\Controllers\Api\Admin\TesController;
-use App\Http\Controllers\Api\Admin\MateriController;
-use App\Http\Controllers\Api\Nakes\ScreeningController;
-use App\Http\Controllers\Api\ForumController;
-use App\Http\Controllers\Api\User\QuizController;
-use App\Http\Controllers\Api\User\QuizSubmissionController;
+use App\Http\Controllers\api\AuthController;
+use App\Http\Controllers\api\ProfileController;
+use App\Http\Controllers\api\WebsiteReviewController;
+use App\Http\Controllers\api\Admin\DashboardController;
+use App\Http\Controllers\api\Admin\UserManagementController;
+use App\Http\Controllers\api\Admin\BankSoalController;
+use App\Http\Controllers\api\Admin\SoalController;
+use App\Http\Controllers\api\Admin\TesController;
+use App\Http\Controllers\api\Admin\MateriController;
+use App\Http\Controllers\api\Nakes\ScreeningController;
+use App\Http\Controllers\api\ForumController;
+use App\Http\Controllers\api\User\QuizController;
+use App\Http\Controllers\api\User\QuizSubmissionController;
 use App\Http\Middleware\RoleMiddleware;
-use App\Http\Controllers\Api\LocationController;
-use App\Http\Controllers\Api\User\MyScreeningController;
-use App\Http\Controllers\Api\PatientController;
-use App\Http\Controllers\Api\Manajemen\DashboardController as ManajemenDashboardController;
-use App\Http\Controllers\Api\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\api\LocationController;
+use App\Http\Controllers\api\User\MyScreeningController;
+use App\Http\Controllers\api\PatientController;
+use App\Http\Controllers\api\Manajemen\DashboardController as ManajemenDashboardController;
+use App\Http\Controllers\api\User\DashboardController as UserDashboardController;
 
 
 /* Health */
