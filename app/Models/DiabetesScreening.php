@@ -37,7 +37,7 @@ class DiabetesScreening extends Model
         'heart_disease' => 'boolean',
         'bmi' => 'decimal:2',
         'blood_glucose_level' => 'decimal:2',
-        'diabetes_probability' => 'decimal:4',
+        'diabetes_probability' => 'string',
         'full_result' => 'array', // JSON
     ];
 
