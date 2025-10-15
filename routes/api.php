@@ -20,7 +20,7 @@ use App\Http\Controllers\api\LocationController;
 use App\Http\Controllers\api\User\MyScreeningController;
 use App\Http\Controllers\api\PatientController;
 use App\Http\Controllers\api\Manajemen\DashboardController as ManajemenDashboardController;
-use App\Http\Controllers\api\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\Api\User\DashboardController as UserDashboardController;
 
 
 /* Health */
