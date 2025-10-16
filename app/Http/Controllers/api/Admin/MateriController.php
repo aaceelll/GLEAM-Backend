@@ -155,7 +155,11 @@ class MateriController extends Controller
 
         $path = $request->file('file_pdf')->store('materi', 'public');
         $url  = asset(Storage::url($path));
-
+        $publicPath = public_path('storage/materi');
+        if (!file_exists($publicPath)) {
+            mkdir($publicPath, 0775, true);
+        }
+        copy(storage_path('app/public/'.$path), $publicPath.'/'.basename($path));
         $konten = KontenMateri::create([
             'materi_id' => $materi->id,
             'judul'     => $request->judul,
