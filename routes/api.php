@@ -171,7 +171,7 @@ Route::middleware('auth:sanctum')->prefix('locations')->group(function () {
 
 
 Route::get('/storage/materi/{filename}', function ($filename) {
-    $path = storage_path('app/public/materi/' . $filename);
+    $path = storage_path('public_html/storage/app/public/materi/' . $filename);
 
     if (!File::exists($path)) {
         abort(404, 'File tidak ditemukan.');
