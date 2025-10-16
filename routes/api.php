@@ -21,6 +21,8 @@ use App\Http\Controllers\api\user\MyScreeningController;
 use App\Http\Controllers\api\PatientController;
 use App\Http\Controllers\api\Manajemen\DashboardController as ManajemenDashboardController;
 use App\Http\Controllers\api\user\DashboardController as UserDashboardController;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\File;
 
 
 /* Health */
@@ -165,4 +167,20 @@ Route::middleware('auth:sanctum')->prefix('locations')->group(function () {
     Route::get('/statistics', [LocationController::class, 'getStatistics']);
     Route::get('/users-by-rw', [LocationController::class, 'getUsersByRW']);
     Route::get('/user/{id}', [LocationController::class, 'getUserDetail']);
+});
+
+
+Route::get('/storage/materi/{filename}', function ($filename) {
+    $path = storage_path('app/public/materi/' . $filename);
+
+    if (!File::exists($path)) {
+        abort(404, 'File tidak ditemukan.');
+    }
+
+    $mime = File::mimeType($path);
+
+    return Response::make(File::get($path), 200, [
+        'Content-Type' => $mime,
+        'Access-Control-Allow-Origin' => '*', // biar tidak kena CORS
+    ]);
 });
