@@ -138,8 +138,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class . 
 
         // Quiz Submissions (punyamu tadi)
         Route::prefix('quiz')->group(function () {
-            Route::get('/submissions', [\App\Http\Controllers\Api\User\QuizSubmissionController::class, 'allSubmissions']);
-            Route::get('/submissions/{id}', [\App\Http\Controllers\Api\User\QuizSubmissionController::class, 'submissionDetail']);
+            Route::get('/submissions', [\App\Http\Controllers\Api\user\QuizSubmissionController::class, 'allSubmissions']);
+            Route::get('/submissions/{id}', [\App\Http\Controllers\Api\user\QuizSubmissionController::class, 'submissionDetail']);
         });
     });
 
