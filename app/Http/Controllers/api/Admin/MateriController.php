@@ -141,7 +141,7 @@ class MateriController extends Controller
             'slug'      => 'nullable|string',
             'judul'     => 'required|string|max:255',
             'video_id'  => 'nullable|string',
-            'file_pdf'  => 'required|file|mimes:pdf|max:10240',
+            'file_pdf'  => 'nullable|file|mimes:pdf|max:10240',
             'deskripsi' => 'required|string',
         ]);
 
@@ -153,13 +153,11 @@ class MateriController extends Controller
             ['nama' => ucwords(str_replace('-', ' ', $slug))]
         );
 
-        $path = $request->file('file_pdf')->store('materi', 'public');
-        $url  = asset(Storage::url($path));
-        $publicPath = public_path('storage/materi');
-        if (!file_exists($publicPath)) {
-            mkdir($publicPath, 0775, true);
-        }
-        copy(storage_path('app/public/'.$path), $publicPath.'/'.basename($path));
+        // Simpan file hanya jika ada
+        $url = null;
+        if ($request->hasFile('file_pdf')) {
+            $path = $request->file('file_pdf')->store('materi', 'public');
+            $url  = asset(Storage::url($path));
         $konten = KontenMateri::create([
             'materi_id' => $materi->id,
             'judul'     => $request->judul,
