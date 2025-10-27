@@ -166,11 +166,11 @@ class MateriController extends Controller
         }
         copy(storage_path('app/public/'.$path), $publicPath.'/'.basename($path));
     }
-    
+
         $konten = KontenMateri::create([
             'materi_id' => $materi->id,
             'judul'     => $request->judul,
-            'video_id'  => $request->video_id,
+            'video_id'  => $request->input('video_id') ?: null,
             'file_url'  => $url,
             'deskripsi' => $request->deskripsi,
         ]);
