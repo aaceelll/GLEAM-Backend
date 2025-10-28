@@ -54,6 +54,7 @@ class ScreeningController extends Controller
             'name'    => $x->patient_name ?: optional($x->user)->name,
             'date'    => $x->created_at ? $x->created_at->toIso8601String() : null,
             'riskPct' => $pct,
+            'riskText' => is_numeric($pct) ? number_format($pct, 2) . '%' : null,
             'user_id' => $x->user_id,
         ];
     }
@@ -61,13 +62,17 @@ class ScreeningController extends Controller
     private function toDetail(DiabetesScreening $x): array
     {
         $pct = $this->parsePercent($x->diabetes_probability);
-        $label = is_numeric($pct) && $pct >= 60 ? 'Risiko Tinggi' : 'Risiko Rendah';
+        $label = is_numeric($pct)
+            ? ($pct >= 48 ? 'Risiko Tinggi'
+                : ($pct <= 40 ? 'Risiko Rendah' : 'Risiko Sedang'))
+            : null;
 
         return [
             'id'            => $x->id,
             'created_at'    => $x->created_at ? $x->created_at->toIso8601String() : null,
             'updated_at'    => $x->updated_at ? $x->updated_at->toIso8601String() : null,
             'riskPct'       => $pct,
+            'riskText'      => is_numeric($pct) ? number_format($pct, 2) . '%' : null,
             'riskLabel'     => $label,
             'nama'          => $x->patient_name ?: optional($x->user)->name,
             'usia'          => $x->age,
