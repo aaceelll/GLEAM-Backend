@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Carbon\Carbon;
 
 class ProfileController extends Controller
 {
@@ -26,16 +27,23 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        // Validate tanggal_lahir terlebih dahulu untuk memastikan formatnya benar
+        $request->validate([
+            'tanggal_lahir' => 'nullable|date_format:Y-m-d',
+        ], [
+            'tanggal_lahir.date_format' => 'Format tanggal lahir harus YYYY-MM-DD (contoh: 2007-05-20)',
+        ]);
+
         $data = $request->validate([
             // ---- Field akun umum (sometimes = optional, hanya validate kalau dikirim)
             'nama'          => ['sometimes','required','string','max:255'],
-            'umur'          => ['nullable', 'integer','min:0'],
+            'umur'          => ['nullable', 'integer','min:10','max:120'],
             'nomor_telepon' => ['nullable','string','max:30'],
             'alamat'        => ['nullable','string','max:255'],
 
             // ---- Field profil kesehatan
             'tempat_lahir'                => 'nullable|string|max:255',
-            'tanggal_lahir'               => 'nullable|date',
+            'tanggal_lahir'               => 'nullable|date_format:Y-m-d',
             'jenis_kelamin'               => 'nullable|in:Laki-laki,Perempuan',
             'pekerjaan'                   => 'nullable|string|max:255',
             'pendidikan_terakhir'         => 'nullable|string|max:255',
@@ -54,47 +62,65 @@ class ProfileController extends Controller
             // ---- Field lokasi
             'kelurahan'                   => 'nullable|in:Pedalangan,Padangsari',
             'rw'                          => 'nullable|string|max:10',
-            'latitude'                    => 'nullable|numeric|between:-90,90',
-            'longitude'                   => 'nullable|numeric|between:-180,180',
-            'address'                     => 'nullable|string|max:500',
+            'latitude'                    => 'nullable|numeric',
+            'longitude'                   => 'nullable|numeric',
+            'address'                     => 'nullable|string',
+        ], [
+            'umur.min' => 'Umur minimal harus 10 tahun.',
+            'umur.max' => 'Umur maksimal adalah 120 tahun.',
+            'tanggal_lahir.date_format' => 'Format tanggal lahir harus YYYY-MM-DD (contoh: 2007-05-20)',
         ]);
 
-        // Auto-calc BMI jika ada berat & tinggi
-        if (isset($data['berat_badan'], $data['tinggi_badan']) && (float)$data['tinggi_badan'] > 0) {
-            $m = $data['tinggi_badan'] / 100;
-            $data['indeks_bmi'] = round($data['berat_badan'] / ($m * $m), 2);
+        // Validasi tambahan untuk tanggal lahir dan umur
+        if (isset($data['tanggal_lahir'])) {
+            try {
+                // Parse tanggal lahir dengan format eksplisit
+                $birthDate = Carbon::createFromFormat('Y-m-d', $data['tanggal_lahir'])->startOfDay();
+                $now = Carbon::now()->startOfDay();
+                
+                // Pastikan tanggal lahir tidak di masa depan
+                if ($birthDate->gt($now)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tanggal lahir tidak boleh di masa depan.',
+                    ], 422);
+                }
+                
+                // Hitung umur dalam tahun penuh
+                $calculatedAge = $birthDate->diffInYears($now);
+                
+                // Validasi umur minimal 10 tahun
+                if ($calculatedAge < 10) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Umur minimal harus 10 tahun. Berdasarkan tanggal lahir {$data['tanggal_lahir']}, umur Anda adalah {$calculatedAge} tahun.",
+                    ], 422);
+                }
+                
+                // Validasi umur maksimal 120 tahun
+                if ($calculatedAge > 120) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tanggal lahir tidak valid. Umur maksimal adalah 120 tahun.',
+                    ], 422);
+                }
+                
+                // Auto-update umur berdasarkan perhitungan
+                $data['umur'] = $calculatedAge;
+                
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format tanggal lahir tidak valid. Gunakan format YYYY-MM-DD (contoh: 2007-05-20)',
+                ], 422);
+            }
         }
 
-        // Tandai user sudah melengkapi profil
-        $data['has_completed_profile'] = true;
-
-        $user->fill($data)->save();
+        $user->update($data);
 
         return response()->json([
             'success' => true,
-            'message' => 'Profile updated successfully',
-            'user'    => $user->fresh(),
+            'data'    => $user->fresh(),
         ]);
-    }
-
-    // PATCH /api/profile/password
-    public function updatePassword(Request $request)
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        $request->validate([
-            'old_password'              => ['required'],
-            'new_password'              => ['required','min:8','confirmed'], // kirim: new_password & new_password_confirmation
-        ]);
-
-        if (! Hash::check($request->old_password, $user->password)) {
-            return response()->json(['success' => false, 'message' => 'Password lama salah.'], 422);
-        }
-
-        $user->password = Hash::make($request->new_password);
-        $user->save();
-
-        return response()->json(['success' => true, 'message' => 'Password berhasil diperbarui.']);
     }
 }
