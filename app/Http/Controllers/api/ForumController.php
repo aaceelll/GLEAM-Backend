@@ -53,44 +53,41 @@ class ForumController extends Controller
             }
         }
 
-        // Filter by category
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        // Search by title or content
-        if ($request->filled('search')) {
-            $s = $request->search;
-            $query->where(function ($q) use ($s) {
-                $q->where('title', 'like', "%{$s}%")
-                  ->orWhere('content', 'like', "%{$s}%");
+        // Search filter
+        if ($request->has('search')) {
+            $search = $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%");
             });
         }
 
-        $query->orderBy('is_pinned', 'desc')
-              ->orderBy('last_activity_at', 'desc');
-
-        $threads = $query->paginate(15);
-
-        // Add is_liked flag for each thread
-        foreach ($threads as $t) {
-            $t->is_liked = ForumThreadLike::where('thread_id', $t->id)
-                ->where('user_id', $user->id)->exists();
+        // Category filter
+        if ($request->has('category_id')) {
+            $query->where('category_id', $request->query('category_id'));
         }
 
-        return response()->json($threads);
+        $threads = $query->orderBy('is_pinned', 'desc')
+            ->orderBy('last_activity_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $threads]);
     }
 
     /**
-     * Get thread detail with replies
+     * Get thread detail
      */
     public function getThreadDetail(Request $request, $id)
     {
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
-        $thread = ForumThread::with(['user', 'category', 'assignedNakes', 'replies.user', 'replies.likes'])
-            ->findOrFail($id);
+        $thread = ForumThread::with([
+            'user',
+            'category',
+            'assignedNakes',
+            'replies.user'
+        ])->findOrFail($id);
 
         // Permission check for private threads
         if ($thread->is_private) {
@@ -196,7 +193,7 @@ class ForumController extends Controller
     // ============================================================================
     
     /**
-     * ⭐ PERBAIKAN: Reply to thread
+     * Reply to thread
      * - Nakes BISA reply tanpa harus assigned dulu
      * - Auto-assign ke nakes yang reply pertama kali
      */
@@ -219,7 +216,7 @@ class ForumController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
             
-            // ⭐ PERUBAHAN UTAMA: Nakes BISA reply meski belum di-assign
+            // Nakes BISA reply meski belum di-assign
             // Pertanyaan akan otomatis di-assign ke nakes yang reply pertama kali
             if ($user->role === 'nakes') {
                 if (!$thread->assigned_nakes_id) {
@@ -245,7 +242,7 @@ class ForumController extends Controller
         return response()->json([
             'message' => 'Balasan berhasil dikirim', 
             'reply' => $reply->load('user'),
-            'thread' => $thread->fresh(['assignedNakes']) // Return updated thread
+            'thread' => $thread->fresh(['assignedNakes'])
         ], 201);
     }
 
@@ -382,33 +379,64 @@ class ForumController extends Controller
     }
 
     /**
-     * ⭐ METHOD BARU: Close/Lock private thread (nakes)
+     * 🆕 Toggle Lock/Unlock private thread (nakes)
      */
-    public function closeThread(Request $request, $id)
+    public function toggleLockThread(Request $request, $id)
     {
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
         
         $thread = ForumThread::findOrFail($id);
         
-        // Validasi: Hanya nakes yang di-assign atau pembuat pertanyaan bisa close
+        // Validasi: Hanya nakes yang di-assign yang bisa lock/unlock
         if ($user->role === 'nakes') {
             if ($thread->is_private && $thread->assigned_nakes_id !== $user->id) {
-                return response()->json(['message' => 'Anda tidak bisa menutup pertanyaan ini'], 403);
+                return response()->json(['message' => 'Anda tidak bisa mengubah status pertanyaan ini'], 403);
             }
         }
         
-        if ($user->role === 'user' && $thread->user_id !== $user->id) {
+        // Toggle lock status
+        $thread->update(['is_locked' => !$thread->is_locked]);
+        
+        $message = $thread->is_locked 
+            ? 'Pertanyaan berhasil dikunci' 
+            : 'Pertanyaan berhasil dibuka kembali';
+        
+        return response()->json([
+            'message' => $message,
+            'thread' => $thread->fresh()
+        ]);
+    }
+
+    /**
+     * 🆕 Delete private thread (nakes only - yang assigned)
+     */
+    public function deletePrivateThread(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+        
+        $thread = ForumThread::findOrFail($id);
+        
+        // Validasi: Hanya nakes yang di-assign yang bisa hapus
+        if ($user->role === 'nakes') {
+            if (!$thread->is_private) {
+                return response()->json(['message' => 'Hanya bisa menghapus pertanyaan private'], 403);
+            }
+            if ($thread->assigned_nakes_id !== $user->id) {
+                return response()->json(['message' => 'Anda tidak bisa menghapus pertanyaan ini'], 403);
+            }
+        } else {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         
-        // Lock thread
-        $thread->update(['is_locked' => true]);
+        // Hapus semua replies terlebih dahulu
+        $thread->replies()->delete();
         
-        return response()->json([
-            'message' => 'Pertanyaan berhasil ditutup',
-            'thread' => $thread->fresh()
-        ]);
+        // Hapus thread
+        $thread->delete();
+        
+        return response()->json(['message' => 'Pertanyaan berhasil dihapus']);
     }
 
     // ============================================================================

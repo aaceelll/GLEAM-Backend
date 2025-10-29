@@ -158,7 +158,14 @@ Route::middleware('auth:sanctum')->prefix('forum')->group(function () {
     Route::get('/private/pending', [ForumController::class, 'getPendingPrivateThreads']);
     Route::get('/private/my-assignments', [ForumController::class, 'getMyPrivateThreads']);
     Route::post('/threads/{id}/assign', [ForumController::class, 'assignToSelf']);
-    Route::patch('/threads/{id}/close', [ForumController::class, 'closeThread']);
+    
+    // 🆕 UPDATE: Ganti route lama dengan yang baru
+    // Route lama (akan di-comment atau dihapus):
+    // Route::patch('/threads/{id}/close', [ForumController::class, 'closeThread']);
+    
+    // 🆕 Routes baru untuk toggle lock/unlock dan delete private thread
+    Route::patch('/threads/{id}/toggle-lock', [ForumController::class, 'toggleLockThread']);
+    Route::delete('/threads/{id}/private', [ForumController::class, 'deletePrivateThread']);
 });
 
 /* Location - Dashboard Manajemen */
