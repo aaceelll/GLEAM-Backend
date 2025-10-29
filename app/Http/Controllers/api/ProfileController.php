@@ -4,9 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -27,21 +26,24 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        // Validate tanggal_lahir terlebih dahulu untuk memastikan formatnya benar
+        // Validasi ringan tanggal_lahir agar error message rapi
         $request->validate([
             'tanggal_lahir' => 'nullable|date_format:Y-m-d',
         ], [
             'tanggal_lahir.date_format' => 'Format tanggal lahir harus YYYY-MM-DD (contoh: 2007-05-20)',
         ]);
 
+        // ✅ Tambahkan email & username, unique tapi mengabaikan user saat ini
         $data = $request->validate([
-            // ---- Field akun umum (sometimes = optional, hanya validate kalau dikirim)
-            'nama'          => ['sometimes','required','string','max:255'],
-            'umur'          => ['nullable', 'integer','min:10','max:120'],
-            'nomor_telepon' => ['nullable','string','max:30'],
-            'alamat'        => ['nullable','string','max:255'],
+            // ---- Akun umum
+            'nama'           => ['sometimes','required','string','max:255'],
+            'email'          => ['sometimes','required','email', Rule::unique('users', 'email')->ignore($user->id)],
+            'username'       => ['sometimes','required','string','max:255', Rule::unique('users', 'username')->ignore($user->id)],
+            'nomor_telepon'  => ['nullable','string','max:30'],
+            'alamat'         => ['nullable','string','max:255'],
+            'umur'           => ['nullable','integer','min:10','max:120'],
 
-            // ---- Field profil kesehatan
+            // ---- Profil kesehatan
             'tempat_lahir'                => 'nullable|string|max:255',
             'tanggal_lahir'               => 'nullable|date_format:Y-m-d',
             'jenis_kelamin'               => 'nullable|in:Laki-laki,Perempuan',
@@ -59,7 +61,7 @@ class ProfileController extends Controller
             'berobat_ke_dokter'           => 'nullable|in:Sudah,Belum',
             'sudah_berobat'               => 'nullable|in:Sudah,Belum Pernah',
 
-            // ---- Field lokasi
+            // ---- Lokasi
             'kelurahan'                   => 'nullable|in:Pedalangan,Padangsari',
             'rw'                          => 'nullable|string|max:10',
             'latitude'                    => 'nullable|numeric',
@@ -71,43 +73,37 @@ class ProfileController extends Controller
             'tanggal_lahir.date_format' => 'Format tanggal lahir harus YYYY-MM-DD (contoh: 2007-05-20)',
         ]);
 
-        // Validasi tambahan untuk tanggal lahir dan umur
+        // Hitung & validasi umur berdasarkan tanggal_lahir (jika dikirim)
         if (isset($data['tanggal_lahir'])) {
             try {
-                // Parse tanggal lahir dengan format eksplisit
                 $birthDate = Carbon::createFromFormat('Y-m-d', $data['tanggal_lahir'])->startOfDay();
                 $now = Carbon::now()->startOfDay();
-                
-                // Pastikan tanggal lahir tidak di masa depan
+
                 if ($birthDate->gt($now)) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Tanggal lahir tidak boleh di masa depan.',
                     ], 422);
                 }
-                
-                // Hitung umur dalam tahun penuh
+
                 $calculatedAge = $birthDate->diffInYears($now);
-                
-                // Validasi umur minimal 10 tahun
+
                 if ($calculatedAge < 10) {
                     return response()->json([
                         'success' => false,
                         'message' => "Umur minimal harus 10 tahun. Berdasarkan tanggal lahir {$data['tanggal_lahir']}, umur Anda adalah {$calculatedAge} tahun.",
                     ], 422);
                 }
-                
-                // Validasi umur maksimal 120 tahun
+
                 if ($calculatedAge > 120) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Tanggal lahir tidak valid. Umur maksimal adalah 120 tahun.',
                     ], 422);
                 }
-                
-                // Auto-update umur berdasarkan perhitungan
+
+                // auto set umur
                 $data['umur'] = $calculatedAge;
-                
             } catch (\Exception $e) {
                 return response()->json([
                     'success' => false,
@@ -116,7 +112,56 @@ class ProfileController extends Controller
             }
         }
 
-        $user->update($data);
+        // Simpan
+        $user->fill($data);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $user->fresh(),
+        ]);
+    }
+
+    // PATCH /api/profile/password
+    public function updatePassword(Request $request)
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'old_password'              => ['required','string'],
+            'new_password'              => ['required','string','min:8'],
+            'new_password_confirmation' => ['required','same:new_password'],
+        ]);
+
+        if (!Hash::check($validated['old_password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password lama tidak sesuai.',
+            ], 422);
+        }
+
+        $user->password = $validated['new_password'];
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil diperbarui.',
+        ]);
+    }
+
+    // PUT /api/profile/personal-info  (opsional, sesuai route-mu)
+    public function updatePersonalInfo(Request $request)
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $data = $request->validate([
+            'nomor_telepon' => ['nullable','string','max:30'],
+            'alamat'        => ['nullable','string','max:255'],
+        ]);
+
+        $user->fill($data)->save();
 
         return response()->json([
             'success' => true,
