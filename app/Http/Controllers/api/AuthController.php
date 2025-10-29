@@ -24,7 +24,7 @@ class AuthController extends Controller
             'password_confirmation' => 'required|same:password',
             'tanggal_lahir' => 'nullable|date',
             'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
-            'alamat' => 'nullable|string',
+            // 'alamat' => 'nullable|string',
             'rt' => 'nullable|string|max:10',
             'rw' => 'nullable|string|max:10',
         ]);
@@ -45,11 +45,12 @@ class AuthController extends Controller
             'nomor_telepon' => $request->nomor_telepon,
             'tanggal_lahir' => $request->tanggal_lahir,
             'jenis_kelamin' => $request->jenis_kelamin,
-            'alamat' => $request->alamat,
+            // 'alamat' => $request->alamat,
             'rt' => $request->rt,
             'rw' => $request->rw,
         ]);
-
+        
+        $user->markEmailAsVerified();  
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -106,7 +107,7 @@ class AuthController extends Controller
                 'nomor_telepon' => $user->nomor_telepon,
                 'tanggal_lahir' => $user->tanggal_lahir,
                 'jenis_kelamin' => $user->jenis_kelamin,
-                'alamat' => $user->alamat,
+                // 'alamat' => $user->alamat,
                 'rt' => $user->rt,
                 'rw' => $user->rw,
             ],
@@ -145,7 +146,7 @@ class AuthController extends Controller
                 'nomor_telepon' => $user->nomor_telepon,
                 'tanggal_lahir' => $user->tanggal_lahir,
                 'jenis_kelamin' => $user->jenis_kelamin,
-                'alamat' => $user->alamat,
+                // 'alamat' => $user->alamat,
                 'rt' => $user->rt,
                 'rw' => $user->rw,
             ]

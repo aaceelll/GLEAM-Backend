@@ -19,36 +19,32 @@ class User extends Authenticatable
     'umur',
     'tempat_lahir',
     'jenis_kelamin',
-    'alamat',
+    'pekerjaan',
     'pendidikan_terakhir',
+
     'riwayat_pelayanan_kesehatan',
     'riwayat_merokok',
     'berat_badan',
     'tinggi_badan',
     'indeks_bmi',
     'riwayat_penyakit_jantung',
-    'lama_terdiagnosis',
-    'sudah_berobat',
-    'has_completed_profile',
-    'role',
-    'diagnosa_medis',
-    'riwayat_kesehatan',
     'durasi_diagnosis',
     'berobat_ke_dokter',
+
+    'has_completed_profile',
+    'role',
+
     'password',
-     'kelurahan',
-     'rw',
-     'latitude',
-     'longitude',
-     'address',
+    'email_verified_at',
+    'kelurahan',
+    'rw',
+    'latitude',
+    'longitude',
+    'address',
 ];
-
-
-
 
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
     protected $casts = [
@@ -59,6 +55,7 @@ class User extends Authenticatable
         'tinggi_badan' => 'decimal:2',
         'indeks_bmi' => 'decimal:2',
         'has_completed_profile' => 'boolean',
+        'email_verified_at' => 'datetime', 
     ];
 
     public function scopePatients($query)

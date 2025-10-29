@@ -24,7 +24,7 @@ class LocationController extends Controller
                 ->whereNotNull('longitude')
                 ->select([
                     'id', 'nama', 'email', 'nomor_telepon',
-                    'kelurahan', 'rw', 'alamat', 'address',
+                    'kelurahan', 'rw', 'address',
                     'latitude', 'longitude'
                 ])
                 ->get();
@@ -195,7 +195,7 @@ class LocationController extends Controller
                 ->whereNotNull('latitude')
                 ->select([
                     'id', 'nama', 'email', 'nomor_telepon',
-                    'alamat', 'address', 'kelurahan', 'rw',
+                    'address', 'kelurahan', 'rw',
                     'latitude', 'longitude'
                 ])
                 ->orderBy('nama')
@@ -223,7 +223,7 @@ class LocationController extends Controller
             $user = User::where('role', 'user')
                 ->where('id', $id)
                 ->select([
-                    'id','nama','email','nomor_telepon','alamat','address',
+                    'id','nama','email','nomor_telepon', 'address',
                     'kelurahan','rw','latitude','longitude',
                     'tanggal_lahir','jenis_kelamin','pekerjaan',
                 ])

@@ -40,7 +40,6 @@ class ProfileController extends Controller
             'email'          => ['sometimes','required','email', Rule::unique('users', 'email')->ignore($user->id)],
             'username'       => ['sometimes','required','string','max:255', Rule::unique('users', 'username')->ignore($user->id)],
             'nomor_telepon'  => ['nullable','string','max:30'],
-            'alamat'         => ['nullable','string','max:255'],
             'umur'           => ['nullable','integer','min:10','max:120'],
 
             // ---- Profil kesehatan
@@ -49,7 +48,6 @@ class ProfileController extends Controller
             'jenis_kelamin'               => 'nullable|in:Laki-laki,Perempuan',
             'pekerjaan'                   => 'nullable|string|max:255',
             'pendidikan_terakhir'         => 'nullable|string|max:255',
-            'riwayat_kesehatan'           => 'nullable|string|max:255',
             'riwayat_pelayanan_kesehatan' => 'nullable|string|max:255',
             'riwayat_merokok'             => 'nullable|in:Perokok Aktif,Mantan Perokok,Tidak Pernah Merokok,Tidak Ada Informasi',
             'berat_badan'                 => 'nullable|numeric|min:0',
@@ -57,9 +55,7 @@ class ProfileController extends Controller
             'indeks_bmi'                  => 'nullable|numeric|min:0',
             'riwayat_penyakit_jantung'    => 'nullable|in:Ya,Tidak',
             'durasi_diagnosis'            => 'nullable|string|max:255',
-            'lama_terdiagnosis'           => 'nullable|string|max:255',
             'berobat_ke_dokter'           => 'nullable|in:Sudah,Belum',
-            'sudah_berobat'               => 'nullable|in:Sudah,Belum Pernah',
 
             // ---- Lokasi
             'kelurahan'                   => 'nullable|in:Pedalangan,Padangsari',
@@ -158,7 +154,7 @@ class ProfileController extends Controller
 
         $data = $request->validate([
             'nomor_telepon' => ['nullable','string','max:30'],
-            'alamat'        => ['nullable','string','max:255'],
+            'address'       => ['nullable','string','max:255'],
         ]);
 
         $user->fill($data)->save();
