@@ -45,6 +45,13 @@
             color: #666;
             font-size: 12px;
         }
+        .link-box {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -58,14 +65,14 @@
             <p>Klik tombol di bawah ini untuk melanjutkan proses reset password:</p>
             
             <div style="text-align: center;">
-                <a href="{{ env('FRONTEND_URL') }}/reset-password?token={{ $token }}&email={{ $email }}" class="button">
+                <a href="{{ config('app.frontend_url') }}/reset-password?token={{ $token }}&email={{ urlencode($email) }}" class="button">
                     Reset Password
                 </a>
             </div>
             
             <p>Atau copy link berikut ke browser Anda:</p>
-            <p style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; word-break: break-all;">
-                {{ env('FRONTEND_URL') }}/reset-password?token={{ $token }}&email={{ $email }}
+            <p class="link-box">
+                {{ config('app.frontend_url') }}/reset-password?token={{ $token }}&email={{ urlencode($email) }}
             </p>
             
             <p><strong>Catatan:</strong></p>
