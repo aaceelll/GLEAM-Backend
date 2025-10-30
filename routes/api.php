@@ -103,6 +103,7 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
         Route::post('/materi/konten', [MateriController::class, 'storeKonten']);
         Route::patch('/materi/konten/{id}', [MateriController::class, 'updateKonten']);
         Route::delete('/materi/konten/{id}', [MateriController::class, 'destroyKonten']);
+        Route::get('/materi/konten/{id}/download', [MateriController::class, 'downloadKonten']);
         Route::get('/bank-soal', [BankSoalController::class, 'index']);
         Route::post('/bank-soal', [BankSoalController::class, 'store']);
         Route::patch('/bank-soal/{id}', [BankSoalController::class, 'update']);

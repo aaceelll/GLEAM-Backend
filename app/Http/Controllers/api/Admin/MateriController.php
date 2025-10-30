@@ -10,6 +10,9 @@ use App\Models\BankSoal;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Illuminate\Support\Facades\File;
 
 class MateriController extends Controller
 {
@@ -24,6 +27,37 @@ class MateriController extends Controller
             $q->where('slug', $slug);
         }
         return response()->json($q->get());
+    }
+
+    /**
+     * ===== ADMIN: DOWNLOAD KONTEN (AMAN UNTUK LINT) =====
+     * GET /api/admin/materi/konten/{id}/download
+     */
+    
+    public function downloadKonten($id): BinaryFileResponse
+    {
+        $konten = KontenMateri::findOrFail($id);
+        if (!$konten->file_url) {
+            abort(404, 'File tidak tersedia');
+        }
+
+        // contoh: https://api.gleam.id/storage/materi/Abc.pdf -> materi/Abc.pdf
+        $publicPath = parse_url($konten->file_url, PHP_URL_PATH) ?? '';
+        $relative   = ltrim(str_replace('/storage/', '', $publicPath), '/'); // materi/xxx.pdf
+
+        if (!Storage::disk('public')->exists($relative)) {
+            abort(404, 'File tidak ditemukan');
+        }
+
+        // path absolut ke storage/app/public/...
+        $fullPath = Storage::disk('public')->path($relative);
+        $niceName = Str::slug($konten->judul ?: 'materi') . '.pdf';
+        $mime     = File::mimeType($fullPath) ?: 'application/pdf';
+
+        // pakai response()->download supaya tidak merah di Intelephense
+        return response()->download($fullPath, $niceName, [
+            'Content-Type' => $mime,
+        ]);
     }
 
     /**
@@ -133,7 +167,7 @@ class MateriController extends Controller
     /**
      * ===== ADMIN: TAMBAH KONTEN =====
      * POST /api/admin/materi/konten
-     * Body: slug (opsional), judul, deskripsi, video_id (opsional), file_pdf
+     * Body: slug (opsional), judul, deskripsi, video_id (opsional), file_pdf (opsional)
      */
     public function storeKonten(Request $request): JsonResponse
     {
@@ -157,15 +191,16 @@ class MateriController extends Controller
         $url = null;
 
         if ($request->hasFile('file_pdf')) {
-        $path = $request->file('file_pdf')->store('materi', 'public');
-        $url  = asset(Storage::url($path));
+            $path = $request->file('file_pdf')->store('materi', 'public'); // storage/app/public/materi/xxx.pdf
+            $url  = asset(Storage::url($path)); // -> /storage/materi/xxx.pdf
 
-        $publicPath = public_path('storage/materi');
-        if (!file_exists($publicPath)) {
-            mkdir($publicPath, 0775, true);
+            // konsisten: copy fisik ke public/storage/materi (untuk akses statis/cdn)
+            $publicPath = public_path('storage/materi');
+            if (!file_exists($publicPath)) {
+                mkdir($publicPath, 0775, true);
+            }
+            copy(storage_path('app/public/'.$path), $publicPath.'/'.basename($path));
         }
-        copy(storage_path('app/public/'.$path), $publicPath.'/'.basename($path));
-    }
 
         $konten = KontenMateri::create([
             'materi_id' => $materi->id,
@@ -204,9 +239,19 @@ class MateriController extends Controller
         }
 
         if ($request->hasFile('file_pdf')) {
+            // hapus file lama dari storage (kalau ada)
             $this->deleteFileByPublicUrl($konten->file_url);
+
+            // simpan baru ke disk 'public'
             $newPath = $request->file('file_pdf')->store('materi', 'public');
             $konten->file_url = asset(Storage::url($newPath));
+
+            // konsisten: copy fisik ke public/storage/materi
+            $publicPath = public_path('storage/materi');
+            if (!file_exists($publicPath)) {
+                mkdir($publicPath, 0775, true);
+            }
+            copy(storage_path('app/public/'.$newPath), $publicPath.'/'.basename($newPath));
         }
 
         $konten->judul     = $request->judul;
