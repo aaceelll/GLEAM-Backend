@@ -38,6 +38,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);

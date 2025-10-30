@@ -32,6 +32,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL (untuk email reset password, dll)
+    |--------------------------------------------------------------------------
+    */
+    'frontend_url' => env('FRONTEND_URL', env('APP_URL')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     */
@@ -48,14 +55,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Encryption
+    | Encryption Key
     |--------------------------------------------------------------------------
     */
     'cipher' => 'AES-256-CBC',
     'key' => env('APP_KEY'),
     'previous_keys' => [
         ...array_filter(
-            explode(',', (string) env('APP_PREVIOUS_KEYS', ''))
+            explode(',', env('APP_PREVIOUS_KEYS', ''))
         ),
     ],
 
@@ -66,7 +73,7 @@ return [
     */
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
-        'store'  => env('APP_MAINTENANCE_STORE', 'database'),
+        'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
     /*
