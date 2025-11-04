@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\api\AuthController;
 use App\Http\Controllers\api\ProfileController;
-use app\Http\Controllers\api\WebsiteReviewController;
+use App\Http\Controllers\api\WebsiteReviewController;
 use App\Http\Controllers\api\Admin\DashboardController;
 use App\Http\Controllers\api\Admin\UserManagementController;
 use App\Http\Controllers\api\Admin\BankSoalController;
