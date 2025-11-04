@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Manajemen;
+namespace App\Http\Controllers\api\Manajemen;
 
 use App\Http\Controllers\Controller;
 use App\Models\WebsiteReview;
