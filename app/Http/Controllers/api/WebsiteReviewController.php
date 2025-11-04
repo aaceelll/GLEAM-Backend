@@ -9,18 +9,24 @@ use Illuminate\Support\Facades\Auth;
 
 class WebsiteReviewController extends Controller
 {
-    // Get review user yang sedang login (jika ada)
+    /**
+     * Ambil ULASAN TERBARU milik user login (untuk prefill, dsb).
+     */
     public function show()
     {
-        $review = WebsiteReview::where('user_id', Auth::id())->first();
-        
+        $review = WebsiteReview::where('user_id', Auth::id())
+            ->orderByDesc('created_at')
+            ->first();
+
         return response()->json([
             'success' => true,
             'data' => $review,
         ]);
     }
 
-    // Simpan atau update review
+    /**
+     * Simpan ULASAN BARU SELALU (INSERT) – tidak overwrite.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -37,15 +43,31 @@ class WebsiteReviewController extends Controller
             'suggestion' => 'nullable|string|max:5000',
         ]);
 
-        $review = WebsiteReview::updateOrCreate(
-            ['user_id' => Auth::id()],
-            $validated
-        );
+        $review = WebsiteReview::create([
+            'user_id' => Auth::id(),
+            ...$validated,
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Ulasan berhasil disimpan',
+            'message' => 'Ulasan berhasil dikirim',
             'data' => $review,
         ], 201);
+    }
+
+    /**
+     * (Opsional) History milik user login sendiri.
+     */
+    public function history()
+    {
+        $reviews = WebsiteReview::with('user:id,nama,email')
+            ->where('user_id', Auth::id())
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $reviews,
+        ]);
     }
 }

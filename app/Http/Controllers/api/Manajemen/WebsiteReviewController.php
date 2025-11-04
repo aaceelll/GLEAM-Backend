@@ -9,15 +9,20 @@ use Illuminate\Http\Request;
 class WebsiteReviewController extends Controller
 {
     // List + join user (simple pagination)
-    public function index(Request $request)
+        public function index(Request $request)
     {
+        // ambil review terakhir per user
+        $sub = WebsiteReview::selectRaw('MAX(id) as id')
+            ->groupBy('user_id');
+
         $q = WebsiteReview::query()
+            ->whereIn('id', $sub)
             ->with(['user:id,nama,email,role'])
             ->when($request->filled('search'), function ($qq) use ($request) {
                 $s = $request->get('search');
                 $qq->whereHas('user', function ($u) use ($s) {
                     $u->where('nama', 'like', "%$s%")
-                      ->orWhere('email', 'like', "%$s%");
+                        ->orWhere('email', 'like', "%$s%");
                 });
             })
             ->orderByDesc('updated_at');
@@ -30,6 +35,7 @@ class WebsiteReviewController extends Controller
             'data'    => $data,
         ]);
     }
+
 
     // Detail single review
     public function show($id)
