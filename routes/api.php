@@ -140,7 +140,12 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class . 
         // Statistik beranda manajemen
         Route::get('/statistics', [ManajemenDashboardController::class, 'statistics']);
 
-        // Quiz Submissions (punyamu tadi)
+        // Website Reviews (untuk manajemen)
+        Route::get('/website-reviews', [\App\Http\Controllers\Api\Manajemen\WebsiteReviewController::class, 'index']);
+        Route::get('/website-reviews/user/{userId}/history', [\App\Http\Controllers\Api\Manajemen\WebsiteReviewController::class, 'userHistory']); 
+        Route::get('/website-reviews/{id}', [\App\Http\Controllers\Api\Manajemen\WebsiteReviewController::class, 'show']); 
+
+        // Quiz Submissions 
         Route::prefix('quiz')->group(function () {
             Route::get('/submissions', [\App\Http\Controllers\Api\user\QuizSubmissionController::class, 'allSubmissions']);
             Route::get('/submissions/{id}', [\App\Http\Controllers\Api\user\QuizSubmissionController::class, 'submissionDetail']);
