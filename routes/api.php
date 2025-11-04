@@ -20,6 +20,7 @@ use App\Http\Controllers\api\LocationController;
 use App\Http\Controllers\api\user\MyScreeningController;
 use App\Http\Controllers\api\PatientController;
 use App\Http\Controllers\api\Manajemen\DashboardController as ManajemenDashboardController;
+use App\Http\Controllers\api\Manajemen\WebsiteReviewController as ManajemenWebsiteReviewController;
 use App\Http\Controllers\api\user\DashboardController as UserDashboardController;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
@@ -141,14 +142,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class . 
         Route::get('/statistics', [ManajemenDashboardController::class, 'statistics']);
 
         // Website Reviews (untuk manajemen)
-        Route::get('/website-reviews', [\App\Http\Controllers\Api\Manajemen\WebsiteReviewController::class, 'index']);
-        Route::get('/website-reviews/user/{userId}/history', [\App\Http\Controllers\Api\Manajemen\WebsiteReviewController::class, 'userHistory']); 
-        Route::get('/website-reviews/{id}', [\App\Http\Controllers\Api\Manajemen\WebsiteReviewController::class, 'show']); 
+        Route::get('/website-reviews', [ManajemenWebsiteReviewController::class, 'index']);
+        Route::get('/website-reviews/user/{userId}/history', [ManajemenWebsiteReviewController::class, 'userHistory']); 
+        Route::get('/website-reviews/{id}', [ManajemenWebsiteReviewController::class, 'show']); 
 
         // Quiz Submissions 
         Route::prefix('quiz')->group(function () {
-            Route::get('/submissions', [\App\Http\Controllers\Api\user\QuizSubmissionController::class, 'allSubmissions']);
-            Route::get('/submissions/{id}', [\App\Http\Controllers\Api\user\QuizSubmissionController::class, 'submissionDetail']);
+            Route::get('/submissions', [QuizSubmissionController::class, 'allSubmissions']);
+            Route::get('/submissions/{id}', [QuizSubmissionController::class, 'submissionDetail']);
         });
     });
 
