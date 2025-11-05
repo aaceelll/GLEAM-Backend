@@ -113,9 +113,9 @@ class ScreeningController extends Controller
     }
 
     $screening = DiabetesScreening::create([
-        'patient_name'          => $payload['patientName'],
-        'user_id'               => $payload['userId'] ?? null,
-        'nakes_id'              => $payload['nakesId'] ?? null,
+        'patient_name'          => $payload['patient_name'] ?? $payload['patientName'] ?? null,
+        'user_id'               => $payload['user_id'] ?? $payload['userId'] ?? null,
+        'nakes_id'              => $payload['nakes_id'] ?? $payload['nakesId'] ?? null,
         'age'                   => $payload['age'] ?? null,
         'gender'                => $payload['gender'] ?? null,
         'systolic_bp'           => $payload['systolic_bp'] ?? null,
