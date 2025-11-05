@@ -95,49 +95,58 @@ class UserManagementController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        try {
-            $user = User::find((int)$id);
-            if (!$user) return response()->json(['success'=>false,'message'=>'User tidak ditemukan'],404);
+{
+    try {
+        $user = User::find((int)$id);
+        if (!$user) return response()->json(['success'=>false,'message'=>'User tidak ditemukan'],404);
 
-            $validator = Validator::make($request->all(), [
-                'nama'          => 'required|string|max:255',
-                'username'      => ['required','string','max:255', Rule::unique('users','username')->ignore($user->id)],
-                'email'         => ['required','email','max:255', Rule::unique('users','email')->ignore($user->id)],
-                'nomor_telepon' => 'nullable|string|max:20',
-                'password'      => 'nullable|string|min:6',
-                'role'          => 'required|in:admin,nakes,manajemen,user',
-            ]);
+        // Batasi admin agar tidak bisa edit user role "user"
+        $currentUser = Auth::user();
+        if ($currentUser && $currentUser->role === 'admin' && $user->role === 'user') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin tidak diizinkan mengedit akun pengguna (user/pasien)',
+            ], 403);
+        } // ✅ tutup if di sini
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success'=>false,
-                    'message'=>'Validasi gagal',
-                    'errors'=>$validator->errors(),
-                ],422);
-            }
+        $validator = Validator::make($request->all(), [
+            'nama'          => 'required|string|max:255',
+            'username'      => ['required','string','max:255', Rule::unique('users','username')->ignore($user->id)],
+            'email'         => ['required','email','max:255', Rule::unique('users','email')->ignore($user->id)],
+            'nomor_telepon' => 'nullable|string|max:20',
+            'password'      => 'nullable|string|min:6',
+            'role'          => 'required|in:admin,nakes,manajemen,user',
+        ]);
 
-            $data = [
-                'nama'          => $request->nama,
-                'username'      => $request->username,
-                'email'         => $request->email,
-                'nomor_telepon' => $request->nomor_telepon,
-                'role'          => $request->role,
-            ];
-           
-if ($request->filled('password')) {
-    $data['password'] = $request->password; // biarkan cast yg meng-hash
-}
-
-            $user->update($data);
-
-            $updated = User::select('id','nama','username','email','nomor_telepon','role','created_at')->find($user->id);
-
-            return response()->json(['success'=>true,'data'=>$updated,'message'=>'User berhasil diupdate']);
-        } catch (\Exception $e) {
-            return response()->json(['success'=>false,'message'=>'Gagal mengupdate user: '.$e->getMessage()],500);
+        if ($validator->fails()) {
+            return response()->json([
+                'success'=>false,
+                'message'=>'Validasi gagal',
+                'errors'=>$validator->errors(),
+            ],422);
         }
+
+        $data = [
+            'nama'          => $request->nama,
+            'username'      => $request->username,
+            'email'         => $request->email,
+            'nomor_telepon' => $request->nomor_telepon,
+            'role'          => $request->role,
+        ];
+
+        if ($request->filled('password')) {
+            $data['password'] = $request->password;
+        }
+
+        $user->update($data);
+
+        $updated = User::select('id','nama','username','email','nomor_telepon','role','created_at')->find($user->id);
+
+        return response()->json(['success'=>true,'data'=>$updated,'message'=>'User berhasil diupdate']);
+    } catch (\Exception $e) {
+        return response()->json(['success'=>false,'message'=>'Gagal mengupdate user: '.$e->getMessage()],500);
     }
+}
 
     public function destroy($id)
     {
