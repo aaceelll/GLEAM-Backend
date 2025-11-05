@@ -102,39 +102,39 @@ class ScreeningController extends Controller
 
     $payload = $request->validated();
 
-    Log::info('=== PAYLOAD SETELAH VALIDATED ===', $payload);
-
-
     if (empty($payload['diabetes_probability']) && isset($payload['full_result']['probabilitas_diabetes'])) {
-        $payload['diabetes_probability'] = $payload['full_result']['probabilitas_diabetes']; // simpan apa adanya, contoh: "48.47%"
-        Log::info('=== DIABETES PROBABILITY DIAMBIL DARI FULL_RESULT (STRING PERSEN) ===', [
-            'probability' => $payload['diabetes_probability']
-        ]);
+        $payload['diabetes_probability'] = $payload['full_result']['probabilitas_diabetes'];
     }
 
-    $screening = DiabetesScreening::create([
-        'patient_name'          => $payload['patientName'],
-        'user_id'               => $payload['userId'] ?? null,
-        'nakes_id'              => $payload['nakesId'] ?? null,
-        'age'                   => $payload['age'] ?? null,
-        'gender'                => $payload['gender'] ?? null,
-        'systolic_bp'           => $payload['systolic_bp'] ?? null,
-        'diastolic_bp'          => $payload['diastolic_bp'] ?? null,
-        'heart_disease'         => $payload['heart_disease'] ?? false,
-        'smoking_history'       => $payload['smoking_history'] ?? null,
-        'bmi'                   => $payload['bmi'] ?? null,
-        'blood_glucose_level'   => $payload['blood_glucose_level'] ?? null,
-        'diabetes_probability'  => $payload['diabetes_probability'] ?? null, 
-        'diabetes_result'       => $payload['diabetes_result'] ?? null,
-        'bp_classification'     => $payload['bp_classification'] ?? null,
-        'bp_recommendation'     => $payload['bp_recommendation'] ?? null,
-        'full_result'           => $payload['full_result'] ?? null,
-    ]);
+    try {
+        $screening = DiabetesScreening::create([
+            'patient_name'          => $payload['patient_name'] ?? $payload['patientName'] ?? null,
+            'user_id'               => $payload['user_id'] ?? $payload['userId'] ?? null,
+            'nakes_id'              => $payload['nakes_id'] ?? $payload['nakesId'] ?? null,
+            'age'                   => $payload['age'] ?? null,
+            'gender'                => $payload['gender'] ?? null,
+            'systolic_bp'           => $payload['systolic_bp'] ?? null,
+            'diastolic_bp'          => $payload['diastolic_bp'] ?? null,
+            'heart_disease'         => $payload['heart_disease'] ?? null,
+            'smoking_history'       => $payload['smoking_history'] ?? null,
+            'bmi'                   => $payload['bmi'] ?? null,
+            'blood_glucose_level'   => $payload['blood_glucose_level'] ?? null,
+            'diabetes_probability'  => $payload['diabetes_probability'] ?? null,
+            'diabetes_result'       => $payload['diabetes_result'] ?? null,
+            'bp_classification'     => $payload['bp_classification'] ?? null,
+            'bp_recommendation'     => $payload['bp_recommendation'] ?? null,
+            'full_result'           => $payload['full_result'] ?? null,
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'id'      => $screening->id,
-        'data'    => $screening,
-    ], 201);
+        return response()->json([
+            'success' => true,
+            'id'      => $screening->id,
+            'data'    => $screening,
+        ], 201);
+
+    } catch (\Throwable $e) {
+        Log::error('❌ Gagal simpan screening', ['error' => $e->getMessage()]);
+        return response()->json(['message' => $e->getMessage()], 500);
+    }
 }
 }
