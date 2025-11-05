@@ -104,37 +104,84 @@ class ScreeningController extends Controller
 
     Log::info('=== PAYLOAD SETELAH VALIDATED ===', $payload);
 
+    // ✅ FIX: Validasi nakesId - pastikan exist di users table
+    $nakesId = null;
+    if (!empty($payload['nakesId']) && $payload['nakesId'] > 0) {
+        // Cek apakah user dengan ID ini ada di database DAN role-nya nakes
+        $nakesExists = \App\Models\User::where('id', $payload['nakesId'])
+                                       ->whereIn('role', ['nakes', 'admin'])
+                                       ->exists();
+        if ($nakesExists) {
+            $nakesId = $payload['nakesId'];
+            Log::info('✅ Nakes ID valid', ['nakesId' => $nakesId]);
+        } else {
+            Log::warning('⚠️ Nakes ID tidak ditemukan atau bukan role nakes', [
+                'nakesId' => $payload['nakesId']
+            ]);
+        }
+    } else {
+        Log::warning('⚠️ nakesId kosong atau 0', ['nakesId' => $payload['nakesId'] ?? 'null']);
+    }
 
-    if (empty($payload['diabetes_probability']) && isset($payload['full_result']['probabilitas_diabetes'])) {
-        $payload['diabetes_probability'] = $payload['full_result']['probabilitas_diabetes']; // simpan apa adanya, contoh: "48.47%"
-        Log::info('=== DIABETES PROBABILITY DIAMBIL DARI FULL_RESULT (STRING PERSEN) ===', [
-            'probability' => $payload['diabetes_probability']
+    // Encode full_result jadi JSON string
+    $fullResult = null;
+    if (isset($payload['full_result']) && is_array($payload['full_result'])) {
+        $fullResult = json_encode($payload['full_result']);
+        Log::info('=== FULL_RESULT ENCODED ===', ['full_result' => $fullResult]);
+    }
+
+    // Ambil diabetes_probability
+    $diabetesProb = $payload['diabetes_probability'] ?? null;
+    if (empty($diabetesProb) && isset($payload['full_result']['probabilitas_diabetes'])) {
+        $diabetesProb = $payload['full_result']['probabilitas_diabetes'];
+        Log::info('=== DIABETES PROBABILITY DIAMBIL DARI FULL_RESULT ===', [
+            'probability' => $diabetesProb
         ]);
     }
 
-    $screening = DiabetesScreening::create([
-        'patient_name'          => $payload['patientName'],
-        'user_id'               => $payload['userId'] ?? null,
-        'nakes_id'              => $payload['nakesId'] ?? null,
-        'age'                   => $payload['age'] ?? null,
-        'gender'                => $payload['gender'] ?? null,
-        'systolic_bp'           => $payload['systolic_bp'] ?? null,
-        'diastolic_bp'          => $payload['diastolic_bp'] ?? null,
-        'heart_disease'         => $payload['heart_disease'] ?? false,
-        'smoking_history'       => $payload['smoking_history'] ?? null,
-        'bmi'                   => $payload['bmi'] ?? null,
-        'blood_glucose_level'   => $payload['blood_glucose_level'] ?? null,
-        'diabetes_probability'  => $payload['diabetes_probability'] ?? null, 
-        'diabetes_result'       => $payload['diabetes_result'] ?? null,
-        'bp_classification'     => $payload['bp_classification'] ?? null,
-        'bp_recommendation'     => $payload['bp_recommendation'] ?? null,
-        'full_result'           => $payload['full_result'] ?? null,
-    ]);
+    try {
+        $screening = DiabetesScreening::create([
+            'patient_name'          => $payload['patientName'],
+            'user_id'               => $payload['userId'] ?? null,
+            'nakes_id'              => $nakesId,  // ✅ Sudah divalidasi, bisa null kalau invalid
+            'age'                   => $payload['age'] ?? null,
+            'gender'                => $payload['gender'] ?? null,
+            'systolic_bp'           => $payload['systolic_bp'] ?? null,
+            'diastolic_bp'          => $payload['diastolic_bp'] ?? null,
+            'heart_disease'         => $payload['heart_disease'] ?? 'Tidak',
+            'smoking_history'       => $payload['smoking_history'] ?? null,
+            'bmi'                   => $payload['bmi'] ?? null,
+            'blood_glucose_level'   => $payload['blood_glucose_level'] ?? null,
+            'diabetes_probability'  => $diabetesProb,
+            'diabetes_result'       => $payload['diabetes_result'] ?? null,
+            'bp_classification'     => $payload['bp_classification'] ?? null,
+            'bp_recommendation'     => $payload['bp_recommendation'] ?? null,
+            'full_result'           => $fullResult,
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'id'      => $screening->id,
-        'data'    => $screening,
-    ], 201);
+        Log::info('=== ✅ SCREENING BERHASIL DISIMPAN ===', [
+            'id' => $screening->id,
+            'patient_name' => $screening->patient_name,
+            'nakes_id' => $screening->nakes_id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'id'      => $screening->id,
+            'data'    => $screening,
+        ], 201);
+        
+    } catch (\Exception $e) {
+        Log::error('=== ❌ ERROR SAAT MENYIMPAN SCREENING ===', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'error'   => 'Gagal menyimpan data screening',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
 }
 }
