@@ -1,5 +1,4 @@
 <?php
-// app/Models/KontenMateri.php
 
 namespace App\Models;
 

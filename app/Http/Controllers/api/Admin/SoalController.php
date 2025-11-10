@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 
 class SoalController extends Controller
 {
+    // GET /api/admin/bank-soal/{bankId}/soal
     public function listByBank($bankId)
     {
         $bank = BankSoal::findOrFail($bankId);
@@ -21,6 +22,7 @@ class SoalController extends Controller
         return response()->json(['data' => $items]);
     }
 
+    // POST /api/admin/bank-soal/{bankId}/soal
     public function store(Request $request, $bankId = null)
     {
         $bankId = $bankId ?? $request->input('bank_id') ?? $request->input('bankId');
@@ -44,6 +46,7 @@ class SoalController extends Controller
         $opsi  = $request->input('opsi', []);
         $kunci = $request->input('kunci');
 
+        // Penyesuaian otomatis berdasarkan tipe soal
         if ($tipe === 'screening') {
             $opsi = [];
         } elseif ($tipe === 'true_false') {
@@ -63,12 +66,12 @@ class SoalController extends Controller
             'kunci'   => $kunci,
         ]);
 
-        // sabuk pengaman
         Soal::syncBankVisibility((int)$bankId);
 
         return response()->json(['data' => $soal], 201);
     }
 
+    // DELETE /api/admin/soal/{id}
     public function destroy($id)
     {
         $soal   = Soal::findOrFail($id);
@@ -76,7 +79,6 @@ class SoalController extends Controller
 
         $soal->delete();
 
-        // sabuk pengaman
         if ($bankId) {
             Soal::syncBankVisibility($bankId);
         }

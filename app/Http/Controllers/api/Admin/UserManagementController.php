@@ -1,8 +1,6 @@
 <?php
 
-// app/Http/Controllers/Admin/UserManagementController.php
 namespace App\Http\Controllers\Api\Admin;
-
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -13,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class UserManagementController extends Controller
 {
+    // GET /api/admin/users (Menampilkan daftar semua pengguna dalam sistem)
     public function index()
     {
         try {
@@ -33,6 +32,7 @@ class UserManagementController extends Controller
         }
     }
 
+    // POST /api/admin/users (Membuat akun pengguna baru)
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -78,6 +78,7 @@ class UserManagementController extends Controller
         }
     }
 
+    // Melakukan pencarian nama pengguna
     public function show($id)
     {
         try {
@@ -94,20 +95,21 @@ class UserManagementController extends Controller
         }
     }
 
+    // PATCH /api/admin/users/{id} (Memperbarui data pengguna)
     public function update(Request $request, $id)
 {
     try {
         $user = User::find((int)$id);
         if (!$user) return response()->json(['success'=>false,'message'=>'User tidak ditemukan'],404);
 
-        // Batasi admin agar tidak bisa edit user role "user"
+        // Batasi admin agar tidak bisa edit akun role "user"
         $currentUser = Auth::user();
         if ($currentUser && $currentUser->role === 'admin' && $user->role === 'user') {
             return response()->json([
                 'success' => false,
                 'message' => 'Admin tidak diizinkan mengedit akun pengguna (user/pasien)',
             ], 403);
-        } // ✅ tutup if di sini
+        } 
 
         $validator = Validator::make($request->all(), [
             'nama'          => 'required|string|max:255',
@@ -126,6 +128,7 @@ class UserManagementController extends Controller
             ],422);
         }
 
+        // Update data 
         $data = [
             'nama'          => $request->nama,
             'username'      => $request->username,
@@ -148,17 +151,20 @@ class UserManagementController extends Controller
     }
 }
 
+    // DELETE /api/admin/users/{id} (Menghapus pengguna berdasarkan ID)
     public function destroy($id)
     {
         try {
             $user = User::find((int)$id);
             if (!$user) return response()->json(['success'=>false,'message'=>'User tidak ditemukan'],404);
 
+            // Tidak boleh hapus akun sendiri
             if (Auth::check() && $user->id === Auth::id()) {
                 return response()->json(['success'=>false,'message'=>'Tidak dapat menghapus akun sendiri'],403);
             }
 
             $user->delete();
+
             return response()->json(['success'=>true,'message'=>'User berhasil dihapus']);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>'Gagal menghapus user: '.$e->getMessage()],500);

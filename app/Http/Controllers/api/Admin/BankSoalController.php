@@ -8,9 +8,10 @@ use App\Models\Materi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-// ... (namespace & uses tetap)
+// Mengelola data bank soal pada sistem edukasi, crud, relasi ke materi
 class BankSoalController extends Controller
 {
+    // GET /api/admin/bank-soal ( ambil daftar seluruh bank soal yang tersedia)
     public function index()
     {
         $banks = BankSoal::withCount('soal')
@@ -24,50 +25,50 @@ class BankSoalController extends Controller
                     'status'    => $b->status,
                     'totalSoal' => $total,
                     'updatedAt' => optional($b->updated_at)->toDateTimeString(),
-                    'isShown'   => $total > 0,
+                    'isShown'   => $total > 0, // hanya tampil jika ada soal
                 ];
             });
 
         return response()->json(['data' => $banks]);
     }
 
-    /**
-     * POST /api/admin/bank-soal
-     * Buat bank soal baru
-     * ✅ AUTO-DETECT TIPE (PRE/POST) DARI NAMA
-     */
+    // POST /api/admin/bank-soal (buat soal baru)
+    // Sistem deteksi tipe otomatis (pre/post) berdasarkan nama bank soal dan menghubungkannya
     public function store(Request $request)
     {
+        // Validasi input
         $data = $request->validate([
-            'nama' => 'required|string|max:255',
+            'nama'   => 'required|string|max:255',
             'status' => 'nullable|in:draft,publish',
         ]);
-        
+
+        // Default status = draft
         $data['status'] = $data['status'] ?? 'draft';
         $bank = BankSoal::create($data);
 
-        // ✅ AUTO-LINK KE MATERI DIABETES MELITUS
+        // Auto-link ke materi "diabetes-melitus"
         $materi = Materi::where('slug', 'diabetes-melitus')->first();
-        
+
         if ($materi) {
-            // ✅ DETECT TIPE DARI NAMA BANK SOAL
+            // Deteksi tipe pre/post dari nama bank soal
             $bankNameLower = strtolower($bank->nama);
             $detectedTipe = str_contains($bankNameLower, 'post') ? 'post' : 'pre';
-            
+
             // Cek apakah sudah ada link dengan tipe yang sama
             $exists = DB::table('materi_bank_soal')
                 ->where('materi_id', $materi->id)
                 ->where('bank_id', $bank->id)
                 ->where('tipe', $detectedTipe)
                 ->exists();
-            
+
+            // Jika belum ada, buat relasi baru
             if (!$exists) {
                 DB::table('materi_bank_soal')->insert([
                     'materi_id' => $materi->id,
-                    'bank_id' => $bank->id,
-                    'tipe' => $detectedTipe, // ✅ OTOMATIS DETECT!
+                    'bank_id'   => $bank->id,
+                    'tipe'      => $detectedTipe, // otomatis pre/post
                     'is_active' => true,
-                    'urutan' => DB::table('materi_bank_soal')
+                    'urutan'    => DB::table('materi_bank_soal')
                         ->where('materi_id', $materi->id)
                         ->max('urutan') + 1 ?? 1,
                     'created_at' => now(),
@@ -79,52 +80,43 @@ class BankSoalController extends Controller
         return response()->json($bank, 201);
     }
 
-    /**
-     * PATCH /api/admin/bank-soal/{id}
-     * Update bank soal
-     */
+    // PATCH /api/admin/bank-soal/{id} (update bank soal) 
     public function update($id, Request $request)
     {
         $bank = BankSoal::findOrFail($id);
-        
+
         $bank->update($request->validate([
-            'nama' => 'sometimes|string|max:255',
+            'nama'   => 'sometimes|string|max:255',
             'status' => 'sometimes|in:draft,publish',
         ]));
-        
+
         return response()->json(['ok' => true, 'data' => $bank]);
     }
 
-    /**
-     * DELETE /api/admin/bank-soal/{id}
-     * Hapus bank soal beserta semua soalnya
-     */
+    // DELETE /api/admin/bank-soal/{id} (hapus bank soal)
     public function destroy($id)
     {
         $bank = BankSoal::findOrFail($id);
-        
-        // Hapus link ke materi jika ada
+
+        // Hapus relasi ke tabel pivot materi_bank_soal
         DB::table('materi_bank_soal')->where('bank_id', $id)->delete();
-        
-        // Hapus bank dan soal-soalnya (cascade via model relationship)
+
+        // Hapus bank soal
         $bank->delete();
-        
+
         return response()->json(['ok' => true]);
     }
 
-    /**
-     * POST /api/admin/bank-soal/{bankId}/link-materi
-     * Hubungkan bank soal ke materi
-     */
+    // menghubungkan bank soal tertentu dengan materi tertentu 
     public function linkToMateri(Request $request, $bankId)
     {
         $validated = $request->validate([
             'materi_id' => 'required|exists:materi,id',
-            'tipe' => 'required|in:pre,post',
-            'urutan' => 'nullable|integer',
+            'tipe'      => 'required|in:pre,post',
+            'urutan'    => 'nullable|integer',
         ]);
 
-        // Cek apakah sudah ada link yang sama
+        // Cek apakah sudah ada link serupa
         $exists = DB::table('materi_bank_soal')
             ->where('materi_id', $validated['materi_id'])
             ->where('bank_id', $bankId)
@@ -133,17 +125,17 @@ class BankSoalController extends Controller
 
         if ($exists) {
             return response()->json([
-                'message' => 'Bank soal sudah terhubung ke materi dengan tipe yang sama'
+                'message' => 'Bank soal sudah terhubung ke materi dengan tipe yang sama',
             ], 422);
         }
 
-        // Insert link
+        // Tambahkan relasi baru
         DB::table('materi_bank_soal')->insert([
-            'materi_id' => $validated['materi_id'],
-            'bank_id' => $bankId,
-            'tipe' => $validated['tipe'],
-            'urutan' => $validated['urutan'] ?? 1,
-            'is_active' => true,
+            'materi_id'  => $validated['materi_id'],
+            'bank_id'    => $bankId,
+            'tipe'       => $validated['tipe'],
+            'urutan'     => $validated['urutan'] ?? 1,
+            'is_active'  => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -152,31 +144,32 @@ class BankSoalController extends Controller
             'message' => 'Bank soal berhasil dihubungkan ke materi',
             'data' => [
                 'materi_id' => $validated['materi_id'],
-                'bank_id' => $bankId,
-                'tipe' => $validated['tipe'],
-            ]
+                'bank_id'   => $bankId,
+                'tipe'      => $validated['tipe'],
+            ],
         ]);
     }
 
-    /**
-     * GET /api/admin/bank-soal/{bankId}/materi-links
-     * Lihat materi mana saja yang terhubung ke bank soal ini
-     */
+    // menampilkan daftar materi yang terhubung ke bank soal tertentu
     public function getMateriLinks($bankId)
     {
         $links = DB::table('materi_bank_soal as mbs')
             ->join('materi as m', 'm.id', '=', 'mbs.materi_id')
             ->where('mbs.bank_id', $bankId)
-            ->select('m.id', 'm.nama', 'm.slug', 'mbs.tipe', 'mbs.urutan', 'mbs.is_active')
+            ->select(
+                'm.id',
+                'm.nama',
+                'm.slug',
+                'mbs.tipe',
+                'mbs.urutan',
+                'mbs.is_active'
+            )
             ->get();
 
         return response()->json($links);
     }
 
-    /**
-     * DELETE /api/admin/bank-soal/{bankId}/unlink-materi/{materiId}
-     * Putuskan hubungan bank soal dengan materi
-     */
+    // Menghapus hubungan antara bank soal dan materi tertentu
     public function unlinkFromMateri($bankId, $materiId)
     {
         DB::table('materi_bank_soal')
@@ -184,6 +177,9 @@ class BankSoalController extends Controller
             ->where('materi_id', $materiId)
             ->delete();
 
-        return response()->json(['ok' => true, 'message' => 'Link berhasil dihapus']);
+        return response()->json([
+            'ok' => true,
+            'message' => 'Link berhasil dihapus',
+        ]);
     }
 }

@@ -9,11 +9,6 @@ class Materi extends Model
     protected $table = 'materi'; 
     protected $fillable = ['nama','slug'];
 
-    public function tests()
-    {
-        return $this->hasMany(TestModel::class, 'materi_id');
-    }
-
     public function bankSoal()
     {
         // pivot: materi_bank_soal (materi_id, bank_id, tipe, is_active, urutan, timestamps)
