@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Manajemen;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -10,10 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class LocationController extends Controller
 {
-    /**
-     * GET /api/locations/users
-     * Ambil semua user dengan lokasi lengkap (role=user)
-     */
+    // GET /api/locations/users
+    // peta manajemen
     public function getUsersWithLocations()
     {
         try {
@@ -42,16 +40,12 @@ class LocationController extends Controller
         }
     }
 
-    /**
-     * GET /api/locations/statistics
-     * Tambahan:
-     * - risk_summary { normal, perhatian, risiko }
-     * - affected_percentage (distinct user yang pernah screening / total user)
-     */
+    // GET /api/locations/statistics
+    // Menampilkan ringkasan statistik lokasi dan kesehatan pengguna role manajemen
     public function getStatistics()
     {
         try {
-            // ---------- Perhitungan existing (tetap dipertahankan) ----------
+            // Statistik lokasi pengguna per kelurahan
             $pedalangan = User::where('role', 'user')
                 ->where('kelurahan', 'Pedalangan')
                 ->whereNotNull('latitude')
@@ -84,7 +78,7 @@ class LocationController extends Controller
                 ->get()
                 ->keyBy('rw');
 
-            // Normalize RW Pedalangan (1..11)
+            // Normalisasi RW Pedalangan (1-11)
             $pedalanganData = [];
             for ($i = 1; $i <= 11; $i++) {
                 $rwKey = "RW $i";
@@ -94,7 +88,7 @@ class LocationController extends Controller
                 ];
             }
 
-            // Normalize RW Padangsari (1..17)
+            // Normalisasi RW Padangsari (1-17)
             $padangsariData = [];
             for ($i = 1; $i <= 17; $i++) {
                 $rwKey = "RW $i";
@@ -104,23 +98,7 @@ class LocationController extends Controller
                 ];
             }
 
-            // ---------- Tambahan: data screening real dari DB ----------
-            // Distinct user yang pernah screening (untuk affected % dan total kasus unik)
-            $screenedUserIds = DiabetesScreening::query()
-                ->whereNotNull('user_id')
-                ->where('user_id', '>', 0)
-                ->distinct()
-                ->pluck('user_id');
-
-            $totalDistinctScreened = $screenedUserIds->count();
-            $totalUsers            = User::query()->count();
-            $affectedPercentage    = $totalUsers > 0
-                ? (int) round(($totalDistinctScreened / $totalUsers) * 100)
-                : 0;
-
-            // Ringkasan risiko:
-            //  - jika diabetes_probability numerik → gunakan threshold 0.33 / 0.66
-            //  - fallback ke keyword di diabetes_result
+            // Ringkasan tingkat risiko
             $risk = DiabetesScreening::query()
                 ->selectRaw("
                     SUM(
@@ -151,23 +129,19 @@ class LocationController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => [
-                    // existing fields (dipakai halaman peta)
+                    // data untuk halaman peta
                     'total_keseluruhan' => $total,
                     'total_pedalangan'  => $pedalangan,
                     'total_padangsari'  => $padangsari,
                     'pedalangan_rw'     => $pedalanganData,
                     'padangsari_rw'     => $padangsariData,
 
-                    // new for dashboard health section
+                    // data untuk dashboard kesehatan
                     'risk_summary' => [
                         'normal'    => (int) ($risk->normal ?? 0),
                         'perhatian' => (int) ($risk->perhatian ?? 0),
                         'risiko'    => (int) ($risk->risiko ?? 0),
                     ],
-                    'affected_percentage' => $affectedPercentage,
-
-                    // jika kamu ingin pakai total kasus unik:
-                    'distinct_screened_users' => $totalDistinctScreened,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -178,9 +152,8 @@ class LocationController extends Controller
         }
     }
 
-    /**
-     * GET /api/locations/users-by-rw?kelurahan=Pedalangan&rw=RW 1
-     */
+    // GET /api/locations/users-by-rw?kelurahan=Pedalangan&rw=RW 1
+    // Menampilkan daftar user di RW tertentu
     public function getUsersByRW(Request $request)
     {
         $request->validate([
@@ -214,9 +187,8 @@ class LocationController extends Controller
         }
     }
 
-    /**
-     * GET /api/locations/user/{id}
-     */
+    // Role user
+    // GET /api/locations/user/{id}
     public function getUserDetail($id)
     {
         try {

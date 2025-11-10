@@ -15,7 +15,7 @@ use App\Http\Controllers\api\ForumController;
 use App\Http\Controllers\api\user\QuizController;
 use App\Http\Controllers\api\user\QuizSubmissionController;
 use App\Http\Middleware\RoleMiddleware;
-use App\Http\Controllers\api\LocationController;
+use App\Http\Controllers\api\Manajemen\LocationController as ManajemenLocationController;
 use App\Http\Controllers\api\user\MyScreeningController;
 use App\Http\Controllers\api\PatientController;
 use App\Http\Controllers\api\Manajemen\DashboardController as ManajemenDashboardController;
@@ -144,12 +144,12 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class . 
         });
     });
 
-/* Location - Role Manajemen dan Role User */
+/* Location - Role Manajemen */
 Route::middleware('auth:sanctum')->prefix('locations')->group(function () {
-    Route::get('/users', [LocationController::class, 'getUsersWithLocations']);
-    Route::get('/statistics', [LocationController::class, 'getStatistics']);
-    Route::get('/users-by-rw', [LocationController::class, 'getUsersByRW']);
-    Route::get('/user/{id}', [LocationController::class, 'getUserDetail']);
+    Route::get('/users', [ManajemenLocationController::class, 'getUsersWithLocations']);
+    Route::get('/statistics', [ManajemenLocationController::class, 'getStatistics']);
+    Route::get('/users-by-rw', [ManajemenLocationController::class, 'getUsersByRW']);
+    Route::get('/user/{id}', [ManajemenLocationController::class, 'getUserDetail']);
 });
 
 /* Forum */

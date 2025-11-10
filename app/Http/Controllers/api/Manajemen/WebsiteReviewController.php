@@ -8,13 +8,14 @@ use Illuminate\Http\Request;
 
 class WebsiteReviewController extends Controller
 {
-    // List + join user (simple pagination)
-        public function index(Request $request)
+    // GET  /api/website-reviews
+    public function index(Request $request)
     {
         // ambil review terakhir per user
         $sub = WebsiteReview::selectRaw('MAX(id) as id')
             ->groupBy('user_id');
 
+        // pencarian user
         $q = WebsiteReview::query()
             ->whereIn('id', $sub)
             ->with(['user:id,nama,email,role'])
@@ -36,20 +37,7 @@ class WebsiteReviewController extends Controller
         ]);
     }
 
-
-    // Detail single review
-    public function show($id)
-    {
-        $review = WebsiteReview::with(['user:id,nama,email'])
-            ->findOrFail($id);
-
-        return response()->json([
-            'success' => true,
-            'data'    => $review,
-        ]);
-    }
-
-    // Riwayat ulasan berdasarkan user_id
+    // GET /api/website-reviews/user/{userId}/history
     public function userHistory($userId)
     {
         $reviews = WebsiteReview::where('user_id', $userId)
@@ -63,32 +51,15 @@ class WebsiteReviewController extends Controller
         ]);
     }
 
-    // // Ringkasan statistik sederhana (rata2 tiap butir + total respon)
-    // public function stats()
-    // {
-    //     // contoh skor "SUS-like" sangat sederhana (opsional)
-    //     $all = WebsiteReview::get(['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10']);
-    //     $sus = null;
-    //     if ($all->count() > 0) {
-    //         $scores = $all->map(function ($r) {
-    //             $vals = collect([$r->q1,$r->q2,$r->q3,$r->q4,$r->q5,$r->q6,$r->q7,$r->q8,$r->q9,$r->q10])
-    //                     ->filter(fn($v) => $v !== null)
-    //                     ->map(fn($v) => max(0, min(4, $v - 1))); // 1..5 -> 0..4
-    //             return $vals->sum();
-    //         });
-    //         $sus = round(($scores->avg() / 40) * 100, 1);
-    //     }
-    // }
-
-    // Opsional: hapus
-    public function destroy($id)
+    //GET /api/website-reviews/{id}
+    public function show($id)
     {
-        $r = WebsiteReview::findOrFail($id);
-        $r->delete();
+        $review = WebsiteReview::with(['user:id,nama,email'])
+            ->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'message' => 'Ulasan dihapus',
+            'data'    => $review,
         ]);
     }
 }
