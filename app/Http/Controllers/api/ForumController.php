@@ -25,13 +25,8 @@ class ForumController extends Controller
         return response()->json($categories);
     }
 
-    // ============================================================================
-    // THREADS - LIST & DETAIL
-    // ============================================================================
     
-    /**
-     * Get threads with filter (public or private)
-     */
+    // THREADS - LIST & DETAIL
     public function getThreads(Request $request)
     {
         $user = $request->user();
@@ -167,9 +162,7 @@ class ForumController extends Controller
         ], 201);
     }
 
-    /**
-     * Delete thread (only owner or admin)
-     */
+    // Delete Forum
     public function deleteThread(Request $request, $id)
     {
         $thread = ForumThread::findOrFail($id);
@@ -439,13 +432,10 @@ class ForumController extends Controller
         return response()->json(['message' => 'Pertanyaan berhasil dihapus']);
     }
 
-    // ============================================================================
-    // ADMIN ONLY - PUBLIC THREADS MANAGEMENT
-    // ============================================================================
+    // KHUSUS ADMIN //
     
-    /**
-     * Pin/Unpin thread (admin only, public threads only)
-     */
+    // ROLE ADMIN
+    // pin/unpin forum
     public function pinThread($id)
     {
         $thread = ForumThread::findOrFail($id);
@@ -459,9 +449,8 @@ class ForumController extends Controller
         return response()->json(['message' => 'Thread ' . ($thread->is_pinned ? 'dipin' : 'unpin')]);
     }
 
-    /**
-     * Lock/Unlock thread (admin only, public threads only)
-     */
+    // ROLE ADMIN
+    // lock/unlock forum
     public function lockThread($id)
     {
         $thread = ForumThread::findOrFail($id);
@@ -475,9 +464,8 @@ class ForumController extends Controller
         return response()->json(['message' => 'Thread ' . ($thread->is_locked ? 'dikunci' : 'dibuka')]);
     }
 
-    /**
-     * Force delete thread (admin only, public threads only)
-     */
+    // ROLE ADMIN
+    // delete forum
     public function forceDeleteThread($id)
     {
         $thread = ForumThread::findOrFail($id);
