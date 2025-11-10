@@ -70,6 +70,9 @@ class MateriController extends Controller
     // POST /api/admin/materi/konten
     public function storeKonten(Request $request): JsonResponse
     {
+        if ($request->header('Content-Length') > 10485760) { // 10 MB
+        return response()->json(['message' => 'Ukuran file terlalu besar'], 413);
+    }
         $request->validate([
             'slug'      => 'nullable|string',
             'judul'     => 'required|string|max:255',
