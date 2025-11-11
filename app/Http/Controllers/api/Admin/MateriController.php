@@ -165,22 +165,22 @@ class MateriController extends Controller
     }
 
     // GET /api/materi/tes/{id}
-public function showTesPublic($id): JsonResponse
-{
-    $bankId = (int) $id;
+    public function showTesPublic($id): JsonResponse
+    {
+        $bankId = (int) $id;
 
-    $bank = BankSoal::with(['soal' => function ($q) {
-        $q->select('id','bank_id','teks','tipe','opsi','bobot','kunci');
-    }])->findOrFail($bankId);
+        $bank = BankSoal::with(['soal' => function ($q) {
+            $q->select('id','bank_id','teks','tipe','opsi','bobot','kunci');
+        }])->findOrFail($bankId);
 
-    return response()->json([
-        'bank_id'   => (int) $bank->id,
-        'nama'      => $bank->nama,
-        'totalSoal' => $bank->soal->count(),
-        'soal'      => $bank->soal,
-        'source'    => 'banks',   
-    ], 200);
-}
+        return response()->json([
+            'bank_id'   => (int) $bank->id,
+            'nama'      => $bank->nama,
+            'totalSoal' => $bank->soal->count(),
+            'soal'      => $bank->soal,
+            'source'    => 'banks',   
+        ], 200);
+    }
 
     // PATCH /api/admin/materi/konten/{id}
     public function updateKonten(Request $request, $id): JsonResponse
