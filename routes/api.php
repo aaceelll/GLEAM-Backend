@@ -15,12 +15,13 @@ use App\Http\Controllers\api\ForumController;
 use App\Http\Controllers\api\user\QuizController;
 use App\Http\Controllers\api\user\QuizSubmissionController;
 use App\Http\Middleware\RoleMiddleware;
-use App\Http\Controllers\api\Manajemen\LocationController as ManajemenLocationController;
+use App\Http\Controllers\api\user\DashboardController as UserDashboardController;
 use App\Http\Controllers\api\user\MyScreeningController;
 use App\Http\Controllers\api\PatientController;
 use App\Http\Controllers\api\Manajemen\DashboardController as ManajemenDashboardController;
+use App\Http\Controllers\api\Manajemen\LocationController as ManajemenLocationController;
 use App\Http\Controllers\api\Manajemen\WebsiteReviewController as ManajemenWebsiteReviewController;
-use App\Http\Controllers\api\user\DashboardController as UserDashboardController;
+use App\Http\Controllers\api\Manajemen\QuizSubmissionController as ManajemenQuizSubmissionController;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
 
@@ -139,8 +140,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class . 
         Route::get('/website-reviews/{id}', [ManajemenWebsiteReviewController::class, 'show']); 
         // Quiz Submissions 
         Route::prefix('quiz')->group(function () {
-            Route::get('/submissions', [QuizSubmissionController::class, 'allSubmissions']);
-            Route::get('/submissions/{id}', [QuizSubmissionController::class, 'submissionDetail']);
+            Route::get('/submissions', [ManajemenQuizSubmissionController::class, 'allSubmissions']);
+            Route::get('/submissions/{id}', [ManajemenQuizSubmissionController::class, 'submissionDetail']);
         });
     });
 
