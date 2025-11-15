@@ -21,13 +21,29 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users',
-            'email' => 'required|email|unique:users',
-            'nomor_telepon' => 'required|string|max:20',
-            'password' => 'required|string|min:6',
+            'email' => [
+                'required',
+                'email',
+                'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/',
+                'unique:users,email',
+            ],
+            'nomor_telepon' => [
+                'required',
+                'regex:/^08[0-9]{8,11}$/'
+            ],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/'
+            ],
             'password_confirmation' => 'required|same:password',
-            'tanggal_lahir' => 'nullable|date',
+            'tanggal_lahir' => [
+                'required',
+                'date',
+                'before_or_equal:' . now()->subYears(10)->format('Y-m-d'),
+            ],
             'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
-            // 'alamat' => 'nullable|string',
             'rt' => 'nullable|string|max:10',
             'rw' => 'nullable|string|max:10',
         ]);
@@ -70,7 +86,8 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'login' => 'required|string', // Bisa email atau username
+            'email' => 'nullable|string|email',
+            'username' => 'nullable|string',
             'password' => 'required|string',
         ]);
 
@@ -81,11 +98,22 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Deteksi apakah input email atau username
-        $loginField = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        // Tentukan apakah login menggunakan email atau username
+        if ($request->filled('email')) {
+            $loginField = 'email';
+            $loginValue = $request->email;
+        } elseif ($request->filled('username')) {
+            $loginField = 'username';
+            $loginValue = $request->username;
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email atau username harus diisi.'
+            ], 422);
+        }
 
         // Cari user berdasarkan email atau username
-        $user = User::where($loginField, $request->login)->first();
+        $user = User::where($loginField, $loginValue)->first();
 
         // Validasi user dan password
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -149,7 +177,6 @@ class AuthController extends Controller
                 'nomor_telepon' => $user->nomor_telepon,
                 'tanggal_lahir' => $user->tanggal_lahir,
                 'jenis_kelamin' => $user->jenis_kelamin,
-                // 'alamat' => $user->alamat,
                 'rt' => $user->rt,
                 'rw' => $user->rw,
             ]
@@ -164,7 +191,13 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'login' => 'required|string',
             'old_password' => 'required|string',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/',
+                'confirmed',
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -265,7 +298,13 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'token' => 'required|string',
             'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/',
+                'confirmed',
+            ],
         ]);
 
         if ($validator->fails()) {
