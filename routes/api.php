@@ -10,6 +10,7 @@ use App\Http\Controllers\api\Admin\UserManagementController;
 use App\Http\Controllers\api\Admin\BankSoalController;
 use App\Http\Controllers\api\Admin\SoalController;
 use App\Http\Controllers\api\Admin\MateriController;
+use App\Http\Controllers\Api\Admin\ForumAdminController;
 use App\Http\Controllers\api\Nakes\ScreeningController;
 use App\Http\Controllers\api\ForumController;
 use App\Http\Controllers\api\user\QuizController;
@@ -122,9 +123,9 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])
         Route::apiResource('users', UserManagementController::class);
         // forum untuk admin
         Route::prefix('forum')->group(function () {
-            Route::post('/threads/{id}/pin', [ForumController::class, 'pinThread']);
-            Route::post('/threads/{id}/lock', [ForumController::class, 'lockThread']);
-            Route::delete('/threads/{id}/force', [ForumController::class, 'forceDeleteThread']);
+            Route::post('/threads/{id}/pin', [ForumAdminController::class, 'pinThread']);
+            Route::post('/threads/{id}/lock', [ForumAdminController::class, 'lockThread']);
+            Route::delete('/threads/{id}/force', [ForumAdminController::class, 'forceDeleteThread']);
         });
     });
 

@@ -431,49 +431,4 @@ class ForumController extends Controller
         
         return response()->json(['message' => 'Pertanyaan berhasil dihapus']);
     }
-
-    // KHUSUS ADMIN //
-    
-    // ROLE ADMIN
-    // pin/unpin forum
-    public function pinThread($id)
-    {
-        $thread = ForumThread::findOrFail($id);
-        if ($thread->is_private) {
-            return response()->json(['message' => 'Tidak bisa pin pertanyaan private'], 403);
-        }
-
-        $thread->is_pinned = !$thread->is_pinned;
-        $thread->save();
-
-        return response()->json(['message' => 'Thread ' . ($thread->is_pinned ? 'dipin' : 'unpin')]);
-    }
-
-    // ROLE ADMIN
-    // lock/unlock forum
-    public function lockThread($id)
-    {
-        $thread = ForumThread::findOrFail($id);
-        if ($thread->is_private) {
-            return response()->json(['message' => 'Tidak bisa lock pertanyaan private'], 403);
-        }
-
-        $thread->is_locked = !$thread->is_locked;
-        $thread->save();
-
-        return response()->json(['message' => 'Thread ' . ($thread->is_locked ? 'dikunci' : 'dibuka')]);
-    }
-
-    // ROLE ADMIN
-    // delete forum
-    public function forceDeleteThread($id)
-    {
-        $thread = ForumThread::findOrFail($id);
-        if ($thread->is_private) {
-            return response()->json(['message' => 'Tidak bisa force delete pertanyaan private'], 403);
-        }
-
-        $thread->delete();
-        return response()->json(['message' => 'Thread berhasil dihapus']);
-    }
 }
