@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class UserManagementController extends Controller
 {
@@ -38,10 +39,23 @@ class UserManagementController extends Controller
         $validator = Validator::make($request->all(), [
             'nama'          => 'required|string|max:255',
             'username'      => 'required|string|max:255|unique:users,username',
-            'email'         => 'required|email|max:255|unique:users,email',
-            'nomor_telepon' => 'nullable|string|max:20',
-            'password'      => 'required|string|min:6',
-            'role'          => 'required|in:admin,nakes,manajemen,user',
+            'email' => [
+                'required',
+                'email',
+                'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/',
+                'unique:users,email',
+            ],
+            'nomor_telepon' => [
+                'required',
+                'regex:/^08[0-9]{8,11}$/'
+            ],
+            'password'      => [
+                'required',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/'
+            ],
+            'role'          => 'required|in:admin,nakes,manajemen',
         ]);
 
         if ($validator->fails()) {
@@ -58,9 +72,8 @@ class UserManagementController extends Controller
                 'username'          => $request->username,
                 'email'             => $request->email,
                 'nomor_telepon'     => $request->nomor_telepon,
-                'password'          => $request->password,
+                'password'          => Hash::make($request->password),
                 'role'              => $request->role,
-                
             ]);
 
             $user->forceFill(['email_verified_at' => now()])->save();
@@ -114,10 +127,23 @@ class UserManagementController extends Controller
         $validator = Validator::make($request->all(), [
             'nama'          => 'required|string|max:255',
             'username'      => ['required','string','max:255', Rule::unique('users','username')->ignore($user->id)],
-            'email'         => ['required','email','max:255', Rule::unique('users','email')->ignore($user->id)],
-            'nomor_telepon' => 'nullable|string|max:20',
-            'password'      => 'nullable|string|min:6',
-            'role'          => 'required|in:admin,nakes,manajemen,user',
+            'email' => [
+                'required',
+                'email',
+                'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/',
+                Rule::unique('users','email')->ignore($user->id),
+            ],
+            'nomor_telepon' => [
+                'required',
+                'regex:/^08[0-9]{8,11}$/'
+            ],
+            'password'      => [
+                'nullable',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/'
+            ],
+            'role'          => 'required|in:admin,nakes,manajemen',
         ]);
 
         if ($validator->fails()) {
@@ -138,7 +164,7 @@ class UserManagementController extends Controller
         ];
 
         if ($request->filled('password')) {
-            $data['password'] = $request->password;
+            $data['password'] = Hash::make($request->password);
         }
 
         $user->update($data);
