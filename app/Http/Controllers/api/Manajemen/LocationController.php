@@ -187,7 +187,6 @@ class LocationController extends Controller
         }
     }
 
-    // Role user
     // GET /api/locations/user/{id}
     public function getUserDetail($id)
     {
