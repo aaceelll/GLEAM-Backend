@@ -38,11 +38,6 @@ class AuthController extends Controller
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/'
             ],
             'password_confirmation' => 'required|same:password',
-            'tanggal_lahir' => [
-                'required',
-                'date',
-                'before_or_equal:' . now()->subYears(10)->format('Y-m-d'),
-            ],
             'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
             'rt' => 'nullable|string|max:10',
             'rw' => 'nullable|string|max:10',
@@ -62,9 +57,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'role' => 'user',
             'nomor_telepon' => $request->nomor_telepon,
-            'tanggal_lahir' => $request->tanggal_lahir,
             'jenis_kelamin' => $request->jenis_kelamin,
-            // 'alamat' => $request->alamat,
             'rt' => $request->rt,
             'rw' => $request->rw,
         ]);
