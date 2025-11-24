@@ -10,7 +10,7 @@ use App\Http\Controllers\api\Admin\UserManagementController;
 use App\Http\Controllers\api\Admin\BankSoalController;
 use App\Http\Controllers\api\Admin\SoalController;
 use App\Http\Controllers\api\Admin\MateriController;
-use App\Http\Controllers\Api\Admin\ForumAdminController;
+use App\Http\Controllers\api\Admin\ForumAdminController;
 use App\Http\Controllers\api\Nakes\ScreeningController;
 use App\Http\Controllers\api\ForumController;
 use App\Http\Controllers\api\user\QuizController;
