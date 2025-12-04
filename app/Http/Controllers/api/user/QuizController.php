@@ -106,11 +106,83 @@ class QuizController extends Controller
         return response()->json(['data' => $items]);
     }
 
-    // --- Endpoint lain yang sudah ada di proyekmu (biarkan seperti semula).
-    // Disertakan signature-nya agar file ini lengkap & tidak konflik.
+    private function baseName($name)
+    {
+        $clean = strtolower($name);
+        $clean = str_replace(['pre-test', 'post-test', 'pre', 'post'], '', $clean);
+        $clean = str_replace(['test', 'kuis', 'quiz', 'kuisioner'], '', $clean);
 
-    public function getAvailableTests() { /* ... tetap milikmu ... */ }
-    public function getTestDetail($testId) { /* ... tetap milikmu ... */ }
-    public function getAllActiveBanks() { /* ... tetap milikmu ... */ }
-    public function getBankDetail($bankId) { /* ... tetap milikmu ... */ }
+        // hanya huruf/angka, spasi tunggal
+        return trim(preg_replace('/[^a-z0-9]+/', ' ', $clean));
+    }
+
+    public function getAvailableTests(Request $request)
+    {
+        $user = $request->user();
+
+        // Ambil semua bank soal yang aktif & punya soal
+        $banks = BankSoal::query()
+            ->where('status', BankSoal::STATUS_PUBLISH)
+            ->withCount('soal')
+            ->having('soal_count', '>', 0)
+            ->get();
+
+        // Ambil submission user untuk cek apakah pre-test sudah dikerjakan
+        $userSubs = \App\Models\QuizSubmission::where('user_id', $user->id)->get();
+        $result = [];
+
+        foreach ($banks as $bank) {
+            // Cari tipe dari relasi pivot
+            $tipe = DB::table('materi_bank_soal')
+                ->where('bank_id', $bank->id)
+                ->value('tipe');
+
+            // Fallback kalau pivot kosong
+            if (!$tipe) {
+                $lower = strtolower($bank->nama);
+                $tipe = str_contains($lower, 'post') ? 'post' : 'pre';
+            }
+
+            // Cek apakah user sudah mengerjakan test ini
+            $isDone = $userSubs->where('bank_id', $bank->id)->isNotEmpty();
+
+            // LOGIC LOCKING
+            $isLocked = false;
+            if ($tipe === 'post') {
+            $postBase = $this->baseName($bank->nama);
+            $preBank = $banks->first(function ($b) use ($postBase) {
+
+                // Ambil tipe dari pivot
+                $preTipe = DB::table('materi_bank_soal')
+                    ->where('bank_id', $b->id)
+                    ->value('tipe');
+
+                // fallback dari nama
+                if (!$preTipe) {
+                    $lower = strtolower($b->nama);
+                    $preTipe = str_contains($lower, 'post') ? 'post' : 'pre';
+                }
+
+                return $this->baseName($b->nama) === $postBase
+                    && strtolower($preTipe) === 'pre';
+            });
+
+            if ($preBank && $userSubs->where('bank_id', $preBank->id)->isEmpty()) {
+                $isLocked = true;
+            }
+        }
+
+            $result[] = [
+                'id'          => $bank->id,
+                'nama'        => $bank->nama,
+                'tipe'        => $tipe,          
+                'isLocked'    => $isLocked,      
+                'isDone'      => $isDone,
+                'totalSoal'   => $bank->soal_count,
+                'updatedAt'   => optional($bank->updated_at)->toDateTimeString(),
+            ];
+        }
+
+        return response()->json(['data' => $result]);
+    }
 }
