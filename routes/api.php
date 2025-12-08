@@ -151,7 +151,7 @@ Route::middleware('auth:sanctum')->prefix('locations')->group(function () {
     Route::get('/users', [ManajemenLocationController::class, 'getUsersWithLocations']);
     Route::get('/statistics', [ManajemenLocationController::class, 'getStatistics']);
     Route::get('/users-by-rw', [ManajemenLocationController::class, 'getUsersByRW']);
-    Route::get('/user/{id}', [ManajemenLocationController::class, 'getUserDetail']);
+    // Route::get('/user/{id}', [ManajemenLocationController::class, 'getUserDetail']);
 });
 
 /* Forum */
