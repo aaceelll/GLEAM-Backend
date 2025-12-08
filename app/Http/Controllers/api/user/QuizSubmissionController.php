@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\User;
 use App\Http\Controllers\Controller;
 use App\Models\QuizSubmission;
 use App\Models\BankSoal;
-use App\Models\Soal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
