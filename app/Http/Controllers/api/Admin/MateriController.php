@@ -86,9 +86,8 @@ class MateriController extends Controller
             ['nama' => ucwords(str_replace('-', ' ', $slug))]
         );
 
-        // default: tanpa file
+        // upload PDF (opsional)
         $url = null;
-
         if ($request->hasFile('file_pdf')) {
             $path = $request->file('file_pdf')->store('materi', 'public'); // storage/app/public/materi/xxx.pdf
             $url  = asset(Storage::url($path)); 
@@ -97,9 +96,9 @@ class MateriController extends Controller
             if (!file_exists($publicPath)) {
                 mkdir($publicPath, 0775, true);
             }
-            copy(storage_path('app/public/'.$path), $publicPath.'/'.basename($path));
         }
 
+        // simpan konten
         $konten = KontenMateri::create([
             'materi_id' => $materi->id,
             'judul'     => $request->judul,
@@ -121,16 +120,18 @@ class MateriController extends Controller
             return response()->json(['konten' => [], 'tes' => []], 200);
         }
 
+        // Ambil konten materi (video + pdf)
         $konten = KontenMateri::where('materi_id', $materi->id)
             ->orderBy('created_at', 'desc')
             ->get(['id','judul','video_id','file_url','deskripsi','created_at','updated_at']);
 
+        // Ambil bank soal yang publish + punya soal
         $banks = BankSoal::query()
             ->where('status', 'publish')
             ->withCount('soal')
             ->having('soal_count', '>', 0)
             ->orderBy('nama')
-            ->get(['id','nama','tipe']);
+            ->get(['id','nama']);
 
         $tesFormatted = $banks->map(function ($b) {
             return [
@@ -138,21 +139,19 @@ class MateriController extends Controller
                 'nama'        => $b->nama,
                 'deskripsi'   => null,
                 'totalSoal'   => (int) $b->soal_count,
-                'durasiMenit' => null,
                 'bank_id'     => (int) $b->id,
                 'source'      => 'banks',
-                'tipe'        => $b->tipe ?? null,
             ];
         })->values();
 
         return response()->json(['konten' => $konten, 'tes' => $tesFormatted], 200);
     }
 
-    // publish list soal di user
+    // publish list soal untuk admin 
     public function showTesByBank($bankId): JsonResponse
     {
         $bank = BankSoal::with(['soal' => function ($q) {
-            $q->select('id','bank_id','teks','tipe','opsi','bobot','kunci');
+            $q->select('id','bank_id','teks','tipe','opsi','bobot');
         }])->findOrFail($bankId);
 
         return response()->json([
@@ -164,13 +163,13 @@ class MateriController extends Controller
         ], 200);
     }
 
-    // GET /api/materi/tes/{id}
+    // GET /api/materi/tes/{id} (publish soal untuk user)
     public function showTesPublic($id): JsonResponse
     {
         $bankId = (int) $id;
 
         $bank = BankSoal::with(['soal' => function ($q) {
-            $q->select('id','bank_id','teks','tipe','opsi','bobot','kunci');
+            $q->select('id','bank_id','teks','tipe','opsi','bobot');
         }])->findOrFail($bankId);
 
         return response()->json([
@@ -203,6 +202,7 @@ class MateriController extends Controller
             $konten->materi_id = $materi->id;
         }
 
+        // update file PDF (opsional)
         if ($request->hasFile('file_pdf')) {
             // hapus file lama dari storage (kalau ada)
             $this->deleteFileByPublicUrl($konten->file_url);
@@ -210,11 +210,6 @@ class MateriController extends Controller
             // simpan baru ke disk 'public'
             $newPath = $request->file('file_pdf')->store('materi', 'public');
             $konten->file_url = asset(Storage::url($newPath));
-            $publicPath = public_path('storage/materi');
-            if (!file_exists($publicPath)) {
-                mkdir($publicPath, 0775, true);
-            }
-            copy(storage_path('app/public/'.$newPath), $publicPath.'/'.basename($newPath));
         }
 
         $konten->judul     = $request->judul;

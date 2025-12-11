@@ -24,8 +24,8 @@ class BankSoalController extends Controller
                     'nama'      => $b->nama,
                     'status'    => $b->status,
                     'totalSoal' => $total,
+                    'createdAt'  => optional($b->created_at)->toDateTimeString(),
                     'updatedAt' => optional($b->updated_at)->toDateTimeString(),
-                    'isShown'   => $total > 0, // hanya tampil jika ada soal
                 ];
             });
 
@@ -38,12 +38,13 @@ class BankSoalController extends Controller
     {
         // Validasi input
         $data = $request->validate([
-            'nama'   => 'required|string|max:255',
-            'status' => 'nullable|in:draft,publish',
+            'nama' => 'required|string|max:255|unique:question_banks,nama',
+        ],[
+            'nama.required' => 'Nama bank soal wajib diisi.',
+            'nama.unique'   => 'Nama bank soal sudah digunakan.',
         ]);
 
-        // Default status = draft
-        $data['status'] = $data['status'] ?? 'draft';
+        $data['status'] = 'draft'; // default, dan nanti otomatis berubah dari Soal::syncBankVisibility
         $bank = BankSoal::create($data);
 
         // Auto-link ke materi "diabetes-melitus"
@@ -66,11 +67,8 @@ class BankSoalController extends Controller
                 DB::table('materi_bank_soal')->insert([
                     'materi_id' => $materi->id,
                     'bank_id'   => $bank->id,
-                    'tipe'      => $detectedTipe, // otomatis pre/post
+                    'tipe'      => $detectedTipe, 
                     'is_active' => true,
-                    'urutan'    => DB::table('materi_bank_soal')
-                        ->where('materi_id', $materi->id)
-                        ->max('urutan') + 1 ?? 1,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -87,7 +85,6 @@ class BankSoalController extends Controller
 
         $bank->update($request->validate([
             'nama'   => 'sometimes|string|max:255',
-            'status' => 'sometimes|in:draft,publish',
         ]));
 
         return response()->json(['ok' => true, 'data' => $bank]);
@@ -113,7 +110,6 @@ class BankSoalController extends Controller
         $validated = $request->validate([
             'materi_id' => 'required|exists:materi,id',
             'tipe'      => 'required|in:pre,post',
-            'urutan'    => 'nullable|integer',
         ]);
 
         // Cek apakah sudah ada link serupa
@@ -134,7 +130,6 @@ class BankSoalController extends Controller
             'materi_id'  => $validated['materi_id'],
             'bank_id'    => $bankId,
             'tipe'       => $validated['tipe'],
-            'urutan'     => $validated['urutan'] ?? 1,
             'is_active'  => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -161,7 +156,6 @@ class BankSoalController extends Controller
                 'm.nama',
                 'm.slug',
                 'mbs.tipe',
-                'mbs.urutan',
                 'mbs.is_active'
             )
             ->get();

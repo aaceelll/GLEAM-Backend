@@ -9,7 +9,7 @@ class Soal extends Model
 {
     protected $table = 'questions';
     protected $fillable = [
-        'bank_id', 'teks', 'tipe', 'bobot', 'kunci', 'opsi'
+        'bank_id', 'teks', 'bobot', 'opsi', 'tipe'
     ];
 
     // Konversi otomatis untuk kolom JSON
